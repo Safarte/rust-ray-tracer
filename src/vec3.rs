@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops;
 
-use rand::{distributions::Standard, prelude::Distribution, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3 {
@@ -150,7 +150,7 @@ impl ops::Mul for Vec3 {
         Vec3::new(
             self.e[0] * rhs.e[0],
             self.e[1] * rhs.e[1],
-            self.e[1] * rhs.e[2],
+            self.e[2] * rhs.e[2],
         )
     }
 }
@@ -194,12 +194,6 @@ impl ops::DivAssign<f64> for Vec3 {
 impl fmt::Display for Vec3 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {} {}", self.e[0], self.e[1], self.e[2])
-    }
-}
-
-impl Distribution<Vec3> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Vec3 {
-        Vec3::new(rng.gen(), rng.gen(), rng.gen())
     }
 }
 

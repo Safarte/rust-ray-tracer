@@ -1,3 +1,5 @@
+use rand::{thread_rng, Rng};
+
 use crate::{
     ray::Ray,
     vec3::{Color, Point3, Vec3},
@@ -12,8 +14,8 @@ pub struct HitRecord<'a> {
 }
 
 pub struct Scatter {
-    scattered: Option<Ray>,
-    attenuation: Color,
+    pub scattered: Option<Ray>,
+    pub attenuation: Color,
 }
 
 pub trait Material {
@@ -25,7 +27,7 @@ pub struct Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
 
         if scatter_direction.near_zero() {
@@ -37,4 +39,81 @@ impl Material for Lambertian {
             attenuation: self.albedo,
         })
     }
+}
+
+pub struct Metal {
+    pub albedo: Color,
+    pub fuzziness: f64,
+}
+
+impl Material for Metal {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        let reflected = reflect(r_in.direction().unit_vector(), rec.normal);
+        let scattered = Ray::new(
+            rec.p,
+            reflected + self.fuzziness * Vec3::random_in_unit_sphere(),
+        );
+        if scattered.direction().dot(&rec.normal) > 0. {
+            return Some(Scatter {
+                scattered: Some(scattered),
+                attenuation: self.albedo,
+            });
+        }
+        None
+    }
+}
+
+pub struct Dielectric {
+    pub ir: f64, // Indice of refraction
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        let mut rng = thread_rng();
+        let mut refraction_ratio = 1. / self.ir;
+        let mut n = rec.normal;
+
+        if r_in.direction().dot(&rec.normal) > 0. {
+            refraction_ratio = self.ir;
+            n = -rec.normal;
+        }
+        let unit_direction = r_in.direction().unit_vector();
+        let cos_theta = -unit_direction.dot(&n).min(1.);
+
+        let attenuation = Color::new(1., 1., 1.);
+
+        if let Some(refracted) = refract(unit_direction, n, refraction_ratio) {
+            if reflectance(cos_theta, self.ir) < rng.gen() {
+                return Some(Scatter {
+                    scattered: Some(Ray::new(rec.p, refracted)),
+                    attenuation,
+                });
+            }
+        }
+        Some(Scatter {
+            scattered: Some(Ray::new(rec.p, reflect(unit_direction, rec.normal))),
+            attenuation,
+        })
+    }
+}
+
+fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    v - 2. * v.dot(&n) * n
+}
+
+fn refract(uv: Vec3, n: Vec3, refraction_ratio: f64) -> Option<Vec3> {
+    let cos_theta = -uv.dot(&n).min(1.);
+    let sin_theta = (1. - cos_theta * cos_theta).sqrt();
+    if refraction_ratio * sin_theta > 1. {
+        return None;
+    }
+    let r_out_ortho = refraction_ratio * (uv + cos_theta * n);
+    let r_out_para = -(1. - r_out_ortho.length_squared()).abs().sqrt() * n;
+    Some(r_out_ortho + r_out_para)
+}
+
+fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+    let r0 = (1. - ref_idx) / (1. + ref_idx);
+    let r0s = r0 * r0;
+    r0s + (1. - r0s) * (1. - cosine).powi(5)
 }
