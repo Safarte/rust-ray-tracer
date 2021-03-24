@@ -1,5 +1,6 @@
 mod camera;
 mod geometry;
+mod material;
 mod ray;
 mod vec3;
 

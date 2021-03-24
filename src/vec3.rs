@@ -76,6 +76,11 @@ impl Vec3 {
     pub fn unit_vector(self) -> Vec3 {
         self / self.length()
     }
+
+    pub fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        (self.e[0].abs() < s) && (self.e[1].abs() < s) && (self.e[2].abs() < s)
+    }
 }
 
 impl ops::Neg for Vec3 {

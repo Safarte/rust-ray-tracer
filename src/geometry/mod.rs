@@ -1,12 +1,7 @@
-use crate::ray::Ray;
-use crate::vec3::{Point3, Vec3};
+use std::sync::Arc;
 
-#[derive(Clone, Copy)]
-pub struct HitRecord {
-    pub p: Point3,
-    pub normal: Vec3,
-    t: f64,
-}
+use crate::{material::HitRecord, ray::Ray};
+use crate::{material::Material, vec3::Point3};
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
@@ -34,6 +29,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 pub struct Sphere {
     pub center: Point3,
     pub radius: f64,
+    pub material: Arc<dyn Material>,
 }
 
 impl Hittable for Sphere {
@@ -53,6 +49,7 @@ impl Hittable for Sphere {
                     p,
                     normal: (p - self.center) / self.radius,
                     t: root,
+                    mat: &*self.material,
                 });
             }
 
@@ -63,6 +60,7 @@ impl Hittable for Sphere {
                     p,
                     normal: (p - self.center) / self.radius,
                     t: root,
+                    mat: &*self.material,
                 });
             }
         }
