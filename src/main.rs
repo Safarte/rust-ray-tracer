@@ -7,7 +7,7 @@ mod vec3;
 use std::sync::Arc;
 
 use camera::Camera;
-use geometry::{Hittable, Sphere};
+use geometry::{Hittable, MovingSphere, Sphere};
 use material::{Dielectric, Lambertian, Metal};
 use rand::{thread_rng, Rng};
 use vec3::{Color, Point3, Vec3};
@@ -58,8 +58,12 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                 if choose_mat < 0.8 {
                     let albedo = Vec3::random_range(0., 1.);
                     let material = Arc::new(Lambertian { albedo });
-                    world.push(Box::new(Sphere {
-                        center,
+                    let center1 = center + Vec3::new(0., rng.gen(), 0.);
+                    world.push(Box::new(MovingSphere {
+                        center0: center,
+                        center1,
+                        time0: 0.,
+                        time1: 1.,
                         radius: 0.2,
                         material,
                     }))
@@ -115,10 +119,10 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 
 fn main() {
     // Image
-    const ASPECT_RATIO: f64 = 3. / 2.;
-    const IMAGE_WIDTH: i32 = 640;
+    const ASPECT_RATIO: f64 = 16. / 9.;
+    const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES: i32 = 512;
+    const SAMPLES: i32 = 100;
     const MAX_DEPTH: i32 = 50;
     let mut rng = thread_rng();
 
@@ -130,7 +134,17 @@ fn main() {
     let lookat = Point3::new(0., 0., 0.);
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
-    let camera = Camera::new(lookfrom, lookat, vup, 20., ASPECT_RATIO, 0.1, dist_to_focus);
+    let camera = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        20.,
+        ASPECT_RATIO,
+        0.1,
+        dist_to_focus,
+        0.,
+        1.,
+    );
 
     // Render
     println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
