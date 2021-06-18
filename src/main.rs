@@ -58,7 +58,7 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
                 if choose_mat < 0.8 {
                     let albedo = Vec3::random_range(0., 1.);
                     let material = Arc::new(Lambertian { albedo });
-                    let center1 = center + Vec3::new(0., rng.gen(), 0.);
+                    let center1 = center + Vec3::new(0., rng.gen_range((0.)..0.5), 0.);
                     world.push(Box::new(MovingSphere {
                         center0: center,
                         center1,
@@ -120,10 +120,10 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16. / 9.;
-    const IMAGE_WIDTH: i32 = 400;
+    const IMAGE_WIDTH: i32 = 1280;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
     const SAMPLES: i32 = 100;
-    const MAX_DEPTH: i32 = 50;
+    const MAX_DEPTH: i32 = 30;
     let mut rng = thread_rng();
 
     // World
