@@ -4,7 +4,9 @@ mod material;
 mod ray;
 mod vec3;
 
-use std::sync::Arc;
+use image::{ImageBuffer, RgbImage};
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 use camera::Camera;
 use geometry::{Hittable, MovingSphere, Sphere};
@@ -12,7 +14,7 @@ use material::{Dielectric, Lambertian, Metal};
 use rand::{thread_rng, Rng};
 use vec3::{Color, Point3, Vec3};
 
-fn ray_color(ray: &ray::Ray, world: &Vec<Box<dyn Hittable>>, depth: i32) -> Color {
+fn ray_color(ray: &ray::Ray, world: &Vec<Box<dyn Hittable + Send + Sync>>, depth: i32) -> Color {
     if depth <= 0 {
         return Color::new(0., 0., 0.);
     }
@@ -30,9 +32,9 @@ fn ray_color(ray: &ray::Ray, world: &Vec<Box<dyn Hittable>>, depth: i32) -> Colo
     (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.)
 }
 
-fn random_scene() -> Vec<Box<dyn Hittable>> {
+fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
     let mut rng = thread_rng();
-    let mut world: Vec<Box<dyn Hittable>> = Vec::new();
+    let mut world: Vec<Box<dyn Hittable + Send + Sync>> = Vec::new();
 
     let ground_material = Arc::new(Lambertian {
         albedo: Color::new(0.5, 0.5, 0.5),
@@ -120,11 +122,10 @@ fn random_scene() -> Vec<Box<dyn Hittable>> {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16. / 9.;
-    const IMAGE_WIDTH: i32 = 1280;
+    const IMAGE_WIDTH: i32 = 640;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
-    const SAMPLES: i32 = 100;
-    const MAX_DEPTH: i32 = 30;
-    let mut rng = thread_rng();
+    const SAMPLES: i32 = 64;
+    const MAX_DEPTH: i32 = 16;
 
     // World
     let world = random_scene();
@@ -147,18 +148,29 @@ fn main() {
     );
 
     // Render
-    println!("P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
+    let img: Mutex<RgbImage> =
+        Mutex::new(ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32));
 
-    for j in (0..IMAGE_HEIGHT).rev() {
-        for i in 0..IMAGE_WIDTH {
+    for y in 0..IMAGE_HEIGHT {
+        (0..IMAGE_WIDTH).into_par_iter().for_each(|x| {
+            let mut rng = thread_rng();
             let mut color = Color::new(0., 0., 0.);
+
             for _ in 0..SAMPLES {
-                let u = (i as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
-                let v = (j as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
+                let u = (x as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
+                let v = (y as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
                 let ray = camera.get_ray(u, v);
                 color += ray_color(&ray, &world, MAX_DEPTH);
             }
-            color.write_color(SAMPLES)
-        }
+
+            let pixel = color.get_color(SAMPLES);
+            {
+                img.lock()
+                    .unwrap()
+                    .put_pixel(x as u32, (IMAGE_HEIGHT - 1 - y) as u32, pixel);
+            }
+        });
     }
+
+    let _ = img.lock().unwrap().save("output.png");
 }

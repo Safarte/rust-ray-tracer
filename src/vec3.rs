@@ -1,6 +1,7 @@
 use std::fmt;
 use std::ops;
 
+use image::Rgb;
 use rand::{thread_rng, Rng};
 
 #[derive(Debug, Clone, Copy)]
@@ -201,7 +202,7 @@ pub type Point3 = Vec3;
 pub type Color = Vec3;
 
 impl Color {
-    pub fn write_color(&self, samples: i32) {
+    pub fn get_color(&self, samples: i32) -> Rgb<u8> {
         // Divide color by number of samples
         let scale = 1. / (samples as f64);
 
@@ -210,11 +211,10 @@ impl Color {
         let g = (self.y() * scale).sqrt();
         let b = (self.z() * scale).sqrt();
 
-        println!(
-            "{} {} {}",
-            (256. * r.clamp(0., 0.999)) as i32,
-            (256. * g.clamp(0., 0.999)) as i32,
-            (256. * b.clamp(0., 0.999)) as i32
-        )
+        Rgb([
+            (256. * r.clamp(0., 0.999)) as u8,
+            (256. * g.clamp(0., 0.999)) as u8,
+            (256. * b.clamp(0., 0.999)) as u8,
+        ])
     }
 }

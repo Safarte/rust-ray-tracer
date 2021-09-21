@@ -7,7 +7,7 @@ pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
-impl Hittable for Vec<Box<dyn Hittable>> {
+impl Hittable for Vec<Box<dyn Hittable + Send + Sync>> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
@@ -29,7 +29,7 @@ impl Hittable for Vec<Box<dyn Hittable>> {
 pub struct Sphere {
     pub center: Point3,
     pub radius: f64,
-    pub material: Arc<dyn Material>,
+    pub material: Arc<dyn Material + Sync + Send>,
 }
 
 impl Hittable for Sphere {
@@ -74,7 +74,7 @@ pub struct MovingSphere {
     pub time0: f64,
     pub time1: f64,
     pub radius: f64,
-    pub material: Arc<dyn Material>,
+    pub material: Arc<dyn Material + Send + Sync>,
 }
 
 impl MovingSphere {
