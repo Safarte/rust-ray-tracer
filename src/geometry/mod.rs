@@ -1,10 +1,13 @@
 use std::sync::Arc;
 
+use crate::aabb::{surrounding_box, AABB};
+use crate::vec3::Vec3;
 use crate::{material::HitRecord, ray::Ray};
 use crate::{material::Material, vec3::Point3};
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
 impl Hittable for Vec<Box<dyn Hittable + Send + Sync>> {
@@ -23,6 +26,33 @@ impl Hittable for Vec<Box<dyn Hittable + Send + Sync>> {
             }
         }
         hit
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let mut out = AABB {
+            min: Point3::zero(),
+            max: Point3::zero(),
+        };
+        let mut first_box = true;
+
+        for hittable in self.iter() {
+            if let Some(temp_box) = hittable.bounding_box(time0, time1) {
+                if first_box {
+                    out = temp_box
+                } else {
+                    out = surrounding_box(out, temp_box)
+                }
+                first_box = false;
+            } else {
+                return None;
+            }
+        }
+
+        Some(out)
     }
 }
 
@@ -65,6 +95,13 @@ impl Hittable for Sphere {
             }
         }
         None
+    }
+
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+        Some(AABB {
+            min: self.center - Vec3::new(self.radius, self.radius, self.radius),
+            max: self.center + Vec3::new(self.radius, self.radius, self.radius),
+        })
     }
 }
 
@@ -117,5 +154,39 @@ impl Hittable for MovingSphere {
             }
         }
         None
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        let box0 = AABB {
+            min: self.center(time0) - Vec3::new(self.radius, self.radius, self.radius),
+            max: self.center(time0) + Vec3::new(self.radius, self.radius, self.radius),
+        };
+        let box1 = AABB {
+            min: self.center(time1) - Vec3::new(self.radius, self.radius, self.radius),
+            max: self.center(time1) + Vec3::new(self.radius, self.radius, self.radius),
+        };
+        Some(surrounding_box(box0, box1))
+    }
+}
+
+pub struct BVHNode {
+    pub left: Box<dyn Hittable>,
+    pub right: Box<dyn Hittable>,
+    pub bbox: AABB,
+}
+
+impl Hittable for BVHNode {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        if !self.bbox.hit(ray, t_min, t_max) {
+            return None;
+        }
+
+        self.left
+            .hit(ray, t_min, t_max)
+            .or(self.right.hit(ray, t_min, t_max))
+    }
+
+    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+        Some(self.bbox)
     }
 }
