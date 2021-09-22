@@ -1,4 +1,7 @@
+use std::cmp::Ordering;
 use std::sync::Arc;
+
+use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
 use crate::vec3::Vec3;
@@ -170,8 +173,8 @@ impl Hittable for MovingSphere {
 }
 
 pub struct BVHNode {
-    pub left: Box<dyn Hittable>,
-    pub right: Box<dyn Hittable>,
+    pub left: Arc<dyn Hittable>,
+    pub right: Arc<dyn Hittable>,
     pub bbox: AABB,
 }
 
@@ -189,4 +192,61 @@ impl Hittable for BVHNode {
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
         Some(self.bbox)
     }
+}
+
+impl BVHNode {
+    pub fn new(
+        src_objects: Vec<Arc<dyn Hittable>>,
+        start: usize,
+        end: usize,
+        time0: f64,
+        time1: f64,
+    ) -> BVHNode {
+        let objects = src_objects;
+        let left: Arc<dyn Hittable>;
+        let right: Arc<dyn Hittable>;
+
+        let axis = random_int(0, 2);
+
+        let span = end - start;
+
+        if span == 1 {
+            left = objects[start].clone();
+            right = objects[start].clone();
+        } else if span == 2 {
+            if box_compare(objects[start].clone(), objects[start + 1].clone(), axis).is_lt() {
+                left = objects[start].clone();
+                right = objects[start + 1].clone();
+            } else {
+                left = objects[start + 1].clone();
+                right = objects[start].clone();
+            }
+        } else {
+            left = objects[start].clone();
+            right = objects[start].clone();
+        }
+
+        BVHNode {
+            left: left.clone(),
+            right: right.clone(),
+            bbox: surrounding_box(
+                left.bounding_box(time0, time1).unwrap(),
+                right.bounding_box(time0, time1).unwrap(),
+            ),
+        }
+    }
+}
+
+fn random_int(min: i32, max: i32) -> usize {
+    let mut rng = thread_rng();
+    rng.gen_range(min..max) as usize
+}
+
+fn box_compare(a: Arc<dyn Hittable>, b: Arc<dyn Hittable>, axis: usize) -> Ordering {
+    if let Some(box_a) = a.bounding_box(0., 0.) {
+        if let Some(box_b) = b.bounding_box(0., 0.) {
+            return box_a.min.e[axis].partial_cmp(&box_b.min.e[axis]).unwrap();
+        }
+    }
+    Ordering::Equal
 }

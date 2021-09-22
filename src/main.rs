@@ -123,8 +123,8 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16. / 9.;
-    const IMAGE_WIDTH: i32 = 640;
-    const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as i32;
+    const IMAGE_WIDTH: u32 = 640;
+    const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
     const SAMPLES: i32 = 64;
     const MAX_DEPTH: i32 = 16;
 
@@ -149,8 +149,7 @@ fn main() {
     );
 
     // Render
-    let img: Mutex<RgbImage> =
-        Mutex::new(ImageBuffer::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32));
+    let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));
 
     for y in 0..IMAGE_HEIGHT {
         (0..IMAGE_WIDTH).into_par_iter().for_each(|x| {
@@ -168,7 +167,7 @@ fn main() {
             {
                 img.lock()
                     .unwrap()
-                    .put_pixel(x as u32, (IMAGE_HEIGHT - 1 - y) as u32, pixel);
+                    .put_pixel(x as u32, IMAGE_HEIGHT - 1 - y, pixel);
             }
         });
     }
