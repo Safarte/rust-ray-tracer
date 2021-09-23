@@ -15,7 +15,9 @@ use material::{Dielectric, Lambertian, Metal};
 use rand::{thread_rng, Rng};
 use vec3::{Color, Point3, Vec3};
 
-fn ray_color(ray: &ray::Ray, world: &Vec<Box<dyn Hittable + Send + Sync>>, depth: i32) -> Color {
+use crate::geometry::BVHNode;
+
+fn ray_color(ray: &ray::Ray, world: Arc<dyn Hittable + Send + Sync>, depth: i32) -> Color {
     if depth <= 0 {
         return Color::new(0., 0., 0.);
     }
@@ -33,14 +35,14 @@ fn ray_color(ray: &ray::Ray, world: &Vec<Box<dyn Hittable + Send + Sync>>, depth
     (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.)
 }
 
-fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
+fn random_scene() -> Vec<Arc<dyn Hittable + Send + Sync>> {
     let mut rng = thread_rng();
-    let mut world: Vec<Box<dyn Hittable + Send + Sync>> = Vec::new();
+    let mut world: Vec<Arc<dyn Hittable + Send + Sync>> = Vec::new();
 
     let ground_material = Arc::new(Lambertian {
         albedo: Color::new(0.5, 0.5, 0.5),
     });
-    world.push(Box::new(Sphere {
+    world.push(Arc::new(Sphere {
         center: Point3::new(0., -1000., 0.),
         radius: 1000.,
         material: ground_material,
@@ -62,7 +64,7 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
                     let albedo = Vec3::random_range(0., 1.);
                     let material = Arc::new(Lambertian { albedo });
                     let center1 = center + Vec3::new(0., rng.gen_range((0.)..0.5), 0.);
-                    world.push(Box::new(MovingSphere {
+                    world.push(Arc::new(MovingSphere {
                         center0: center,
                         center1,
                         time0: 0.,
@@ -74,14 +76,14 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
                     let albedo = Vec3::random_range(0.5, 1.);
                     let fuzziness: f64 = rng.gen_range((0.)..0.5);
                     let material = Arc::new(Metal { albedo, fuzziness });
-                    world.push(Box::new(Sphere {
+                    world.push(Arc::new(Sphere {
                         center,
                         radius: 0.2,
                         material,
                     }))
                 } else {
                     let material = Arc::new(Dielectric { ir: 1.5 });
-                    world.push(Box::new(Sphere {
+                    world.push(Arc::new(Sphere {
                         center,
                         radius: 0.2,
                         material,
@@ -92,7 +94,7 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
     }
 
     let material = Arc::new(Dielectric { ir: 1.5 });
-    world.push(Box::new(Sphere {
+    world.push(Arc::new(Sphere {
         center: Point3::new(0., 1., 0.),
         radius: 1.,
         material,
@@ -101,7 +103,7 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
     let material = Arc::new(Lambertian {
         albedo: Color::new(0.4, 0.2, 0.1),
     });
-    world.push(Box::new(Sphere {
+    world.push(Arc::new(Sphere {
         center: Point3::new(-4., 1., 0.),
         radius: 1.,
         material,
@@ -111,7 +113,7 @@ fn random_scene() -> Vec<Box<dyn Hittable + Send + Sync>> {
         albedo: Color::new(0.7, 0.6, 0.5),
         fuzziness: 0.,
     });
-    world.push(Box::new(Sphere {
+    world.push(Arc::new(Sphere {
         center: Point3::new(4., 1., 0.),
         radius: 1.,
         material,
@@ -129,7 +131,10 @@ fn main() {
     const MAX_DEPTH: i32 = 16;
 
     // World
-    let world = random_scene();
+    let scene = random_scene();
+
+    // let world = BVHNode::new(scene, 0., 1.);
+    let world = Arc::new(scene);
 
     // Camera
     let lookfrom = Point3::new(13., 2., 3.);
@@ -160,7 +165,7 @@ fn main() {
                 let u = (x as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
                 let v = (y as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
                 let ray = camera.get_ray(u, v);
-                color += ray_color(&ray, &world, MAX_DEPTH);
+                color += ray_color(&ray, world.clone(), MAX_DEPTH);
             }
 
             let pixel = color.get_color(SAMPLES);

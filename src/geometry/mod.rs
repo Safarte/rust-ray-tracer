@@ -13,7 +13,7 @@ pub trait Hittable {
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
-impl Hittable for Vec<Box<dyn Hittable + Send + Sync>> {
+impl Hittable for Vec<Arc<dyn Hittable + Sync + Send>> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
@@ -173,8 +173,8 @@ impl Hittable for MovingSphere {
 }
 
 pub struct BVHNode {
-    pub left: Arc<dyn Hittable>,
-    pub right: Arc<dyn Hittable>,
+    pub left: Arc<dyn Hittable + Send + Sync>,
+    pub right: Arc<dyn Hittable + Send + Sync>,
     pub bbox: AABB,
 }
 
@@ -184,9 +184,20 @@ impl Hittable for BVHNode {
             return None;
         }
 
-        self.left
-            .hit(ray, t_min, t_max)
-            .or(self.right.hit(ray, t_min, t_max))
+        let mut rec: HitRecord;
+
+        if let Some(left_rec) = self.left.hit(ray, t_min, t_max) {
+            rec = left_rec;
+            if let Some(right_rec) = self.right.hit(ray, t_min, rec.t) {
+                rec = right_rec;
+            }
+            return Some(rec);
+        }
+        if let Some(right_rec) = self.right.hit(ray, t_min, t_max) {
+            return Some(right_rec);
+        }
+
+        None
     }
 
     fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
@@ -196,44 +207,47 @@ impl Hittable for BVHNode {
 
 impl BVHNode {
     pub fn new(
-        src_objects: Vec<Arc<dyn Hittable>>,
-        start: usize,
-        end: usize,
+        src_objects: Vec<Arc<dyn Hittable + Send + Sync>>,
         time0: f64,
         time1: f64,
-    ) -> BVHNode {
-        let objects = src_objects;
-        let left: Arc<dyn Hittable>;
-        let right: Arc<dyn Hittable>;
+    ) -> Arc<dyn Hittable + Send + Sync> {
+        let mut objects = src_objects;
+        let left: Arc<dyn Hittable + Send + Sync>;
+        let right: Arc<dyn Hittable + Send + Sync>;
 
         let axis = random_int(0, 2);
 
-        let span = end - start;
+        let span = objects.len();
 
         if span == 1 {
-            left = objects[start].clone();
-            right = objects[start].clone();
+            left = objects[0].clone();
+            right = objects[0].clone();
         } else if span == 2 {
-            if box_compare(objects[start].clone(), objects[start + 1].clone(), axis).is_lt() {
-                left = objects[start].clone();
-                right = objects[start + 1].clone();
+            if box_compare(&objects[0], &objects[1], axis).is_lt() {
+                left = objects[0].clone();
+                right = objects[1].clone();
             } else {
-                left = objects[start + 1].clone();
-                right = objects[start].clone();
+                left = objects[1].clone();
+                right = objects[0].clone();
             }
         } else {
-            left = objects[start].clone();
-            right = objects[start].clone();
+            objects.sort_by(|a, b| box_compare(a, b, axis));
+
+            let mid = span / 2;
+            left = BVHNode::new(objects[..mid].to_vec(), time0, time1);
+            right = BVHNode::new(objects[mid..].to_vec(), time0, time1);
         }
 
-        BVHNode {
+        let out: Arc<dyn Hittable + Send + Sync> = Arc::new(BVHNode {
             left: left.clone(),
             right: right.clone(),
             bbox: surrounding_box(
                 left.bounding_box(time0, time1).unwrap(),
                 right.bounding_box(time0, time1).unwrap(),
             ),
-        }
+        });
+
+        out
     }
 }
 
@@ -242,7 +256,11 @@ fn random_int(min: i32, max: i32) -> usize {
     rng.gen_range(min..max) as usize
 }
 
-fn box_compare(a: Arc<dyn Hittable>, b: Arc<dyn Hittable>, axis: usize) -> Ordering {
+fn box_compare(
+    a: &Arc<dyn Hittable + Send + Sync>,
+    b: &Arc<dyn Hittable + Send + Sync>,
+    axis: usize,
+) -> Ordering {
     if let Some(box_a) = a.bounding_box(0., 0.) {
         if let Some(box_b) = b.bounding_box(0., 0.) {
             return box_a.min.e[axis].partial_cmp(&box_b.min.e[axis]).unwrap();
