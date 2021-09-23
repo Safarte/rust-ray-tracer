@@ -133,8 +133,8 @@ fn main() {
     // World
     let scene = random_scene();
 
-    // let world = BVHNode::new(scene, 0., 1.);
-    let world = Arc::new(scene);
+    let world = BVHNode::new(scene, 0., 1.);
+    // let world = Arc::new(scene);
 
     // Camera
     let lookfrom = Point3::new(13., 2., 3.);
