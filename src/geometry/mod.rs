@@ -1,19 +1,20 @@
+pub mod sphere;
+
 use std::cmp::Ordering;
 use std::sync::Arc;
 
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::vec3::Vec3;
+use crate::vec3::Point3;
 use crate::{material::HitRecord, ray::Ray};
-use crate::{material::Material, vec3::Point3};
 
-pub trait Hittable {
+pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
-impl Hittable for Vec<Arc<dyn Hittable + Sync + Send>> {
+impl Hittable for Vec<Arc<dyn Hittable>> {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
@@ -59,122 +60,9 @@ impl Hittable for Vec<Arc<dyn Hittable + Sync + Send>> {
     }
 }
 
-pub struct Sphere {
-    pub center: Point3,
-    pub radius: f64,
-    pub material: Arc<dyn Material + Sync + Send>,
-}
-
-impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let oc: Point3 = ray.origin() - self.center;
-        let a = ray.direction().length_squared();
-        let b = oc.dot(&ray.direction());
-        let c = oc.length_squared() - self.radius * self.radius;
-        let discriminant = b * b - a * c;
-        if discriminant > 0. {
-            let sqrtd = discriminant.sqrt();
-
-            let mut root = (-b - sqrtd) / a;
-            if t_min <= root && root <= t_max {
-                let p = ray.at(root);
-                return Some(HitRecord {
-                    p,
-                    normal: (p - self.center) / self.radius,
-                    t: root,
-                    mat: &*self.material,
-                });
-            }
-
-            root = (-b + sqrtd) / a;
-            if t_min <= root && root <= t_max {
-                let p = ray.at(root);
-                return Some(HitRecord {
-                    p,
-                    normal: (p - self.center) / self.radius,
-                    t: root,
-                    mat: &*self.material,
-                });
-            }
-        }
-        None
-    }
-
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
-        Some(AABB {
-            min: self.center - Vec3::new(self.radius, self.radius, self.radius),
-            max: self.center + Vec3::new(self.radius, self.radius, self.radius),
-        })
-    }
-}
-
-pub struct MovingSphere {
-    pub center0: Point3,
-    pub center1: Point3,
-    pub time0: f64,
-    pub time1: f64,
-    pub radius: f64,
-    pub material: Arc<dyn Material + Send + Sync>,
-}
-
-impl MovingSphere {
-    pub fn center(&self, time: f64) -> Point3 {
-        self.center0
-            + ((time - self.time0) / (self.time1 - self.time0)) * (self.center1 - self.center0)
-    }
-}
-
-impl Hittable for MovingSphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let oc: Point3 = ray.origin() - self.center(ray.time());
-        let a = ray.direction().length_squared();
-        let b = oc.dot(&ray.direction());
-        let c = oc.length_squared() - self.radius * self.radius;
-        let discriminant = b * b - a * c;
-        if discriminant > 0. {
-            let sqrtd = discriminant.sqrt();
-
-            let mut root = (-b - sqrtd) / a;
-            if t_min <= root && root <= t_max {
-                let p = ray.at(root);
-                return Some(HitRecord {
-                    p,
-                    normal: (p - self.center(ray.time())) / self.radius,
-                    t: root,
-                    mat: &*self.material,
-                });
-            }
-
-            root = (-b + sqrtd) / a;
-            if t_min <= root && root <= t_max {
-                let p = ray.at(root);
-                return Some(HitRecord {
-                    p,
-                    normal: (p - self.center(ray.time())) / self.radius,
-                    t: root,
-                    mat: &*self.material,
-                });
-            }
-        }
-        None
-    }
-
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
-        let box0 = AABB {
-            min: self.center(time0) - Vec3::new(self.radius, self.radius, self.radius),
-            max: self.center(time0) + Vec3::new(self.radius, self.radius, self.radius),
-        };
-        let box1 = AABB {
-            min: self.center(time1) - Vec3::new(self.radius, self.radius, self.radius),
-            max: self.center(time1) + Vec3::new(self.radius, self.radius, self.radius),
-        };
-        Some(surrounding_box(box0, box1))
-    }
-}
-
 pub struct BVHNode {
-    pub left: Arc<dyn Hittable + Send + Sync>,
-    pub right: Arc<dyn Hittable + Send + Sync>,
+    pub left: Arc<dyn Hittable>,
+    pub right: Arc<dyn Hittable>,
     pub bbox: AABB,
 }
 
@@ -206,14 +94,10 @@ impl Hittable for BVHNode {
 }
 
 impl BVHNode {
-    pub fn new(
-        src_objects: Vec<Arc<dyn Hittable + Send + Sync>>,
-        time0: f64,
-        time1: f64,
-    ) -> Arc<dyn Hittable + Send + Sync> {
+    pub fn new(src_objects: Vec<Arc<dyn Hittable>>, time0: f64, time1: f64) -> Arc<dyn Hittable> {
         let mut objects = src_objects;
-        let left: Arc<dyn Hittable + Send + Sync>;
-        let right: Arc<dyn Hittable + Send + Sync>;
+        let left: Arc<dyn Hittable>;
+        let right: Arc<dyn Hittable>;
 
         let axis = random_int(0, 2);
 
@@ -238,7 +122,7 @@ impl BVHNode {
             right = BVHNode::new(objects[mid..].to_vec(), time0, time1);
         }
 
-        let out: Arc<dyn Hittable + Send + Sync> = Arc::new(BVHNode {
+        let out: Arc<dyn Hittable> = Arc::new(BVHNode {
             left: left.clone(),
             right: right.clone(),
             bbox: surrounding_box(
@@ -256,11 +140,7 @@ fn random_int(min: i32, max: i32) -> usize {
     rng.gen_range(min..max) as usize
 }
 
-fn box_compare(
-    a: &Arc<dyn Hittable + Send + Sync>,
-    b: &Arc<dyn Hittable + Send + Sync>,
-    axis: usize,
-) -> Ordering {
+fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize) -> Ordering {
     if let Some(box_a) = a.bounding_box(0., 0.) {
         if let Some(box_b) = b.bounding_box(0., 0.) {
             return box_a.min.e[axis].partial_cmp(&box_b.min.e[axis]).unwrap();
