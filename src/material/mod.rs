@@ -1,12 +1,15 @@
+pub mod texture;
+
 use std::sync::Arc;
 
 use rand::{thread_rng, Rng};
 
 use crate::{
     ray::Ray,
-    texture::{SolidColor, Texture},
     vec3::{Color, Point3, Vec3},
 };
+
+use self::texture::{SolidColor, Texture};
 
 #[derive(Clone, Copy)]
 pub struct HitRecord<'a> {

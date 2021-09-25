@@ -8,8 +8,8 @@ use crate::{
         sphere::{MovingSphere, Sphere},
         BVHNode, Hittable,
     },
+    material::texture::Checker,
     material::{Dielectric, Lambertian, Metal},
-    texture::Checker,
     vec3::{Color, Point3, Vec3},
 };
 

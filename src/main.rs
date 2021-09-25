@@ -4,7 +4,6 @@ mod geometry;
 mod material;
 mod ray;
 mod scene;
-mod texture;
 mod vec3;
 
 use image::{ImageBuffer, RgbImage};
@@ -73,7 +72,4 @@ fn main() {
     {
         let _ = img.lock().unwrap().save("output.png");
     }
-
-    drop(world);
-    drop(img);
 }
