@@ -1,3 +1,4 @@
+mod perlin;
 pub mod texture;
 
 use std::sync::Arc;

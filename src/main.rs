@@ -37,13 +37,13 @@ fn ray_color(ray: &ray::Ray, world: Arc<dyn Hittable>, depth: i32) -> Color {
 fn main() {
     // Image
     const ASPECT_RATIO: f64 = 16. / 9.;
-    const IMAGE_WIDTH: u32 = 1280;
+    const IMAGE_WIDTH: u32 = 800;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
     const SAMPLES: i32 = 64;
-    const MAX_DEPTH: i32 = 8;
+    const MAX_DEPTH: i32 = 16;
 
     // Scene
-    let (world, camera) = get_scene(SceneType::TwoSpheres, ASPECT_RATIO);
+    let (world, camera) = get_scene(SceneType::Random, ASPECT_RATIO);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));
