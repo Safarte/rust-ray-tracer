@@ -6,8 +6,11 @@ use crate::{
     camera::Camera,
     geometry::{
         aarect::{XYRect, XZRect, YZRect},
+        constant_medium::ConstantMedium,
+        cuboid::Cuboid,
         sphere::{MovingSphere, Sphere},
-        BVHNode, Hittable,
+        transform::{RotateY, Translate},
+        BVHNode, Hittable, Hittables,
     },
     material::{
         texture::{Checker, ImageTexture, Noise},
@@ -17,11 +20,9 @@ use crate::{
     vec3::{Color, Point3, Vec3},
 };
 
-pub type Scene = Vec<Arc<dyn Hittable>>;
-
-fn random_scene() -> Scene {
+fn random_scene() -> Hittables {
     let mut rng = thread_rng();
-    let mut world: Scene = Vec::new();
+    let mut world: Hittables = Vec::new();
 
     let pertex = Arc::new(Noise::new(4.));
     let ground_material = Arc::new(Lambertian::new(pertex));
@@ -100,8 +101,8 @@ fn random_scene() -> Scene {
     world
 }
 
-fn two_spheres() -> Scene {
-    let mut world: Scene = Vec::new();
+fn two_spheres() -> Hittables {
+    let mut world: Hittables = Vec::new();
 
     let checker = Arc::new(Checker::from_colors(
         Color::new(0.2, 0.3, 0.1),
@@ -123,8 +124,8 @@ fn two_spheres() -> Scene {
     world
 }
 
-fn perlin_spheres() -> Scene {
-    let mut world: Scene = Vec::new();
+fn perlin_spheres() -> Hittables {
+    let mut world: Hittables = Vec::new();
 
     let pertex = Arc::new(Noise::new(4.));
 
@@ -143,8 +144,8 @@ fn perlin_spheres() -> Scene {
     world
 }
 
-fn earth() -> Scene {
-    let mut world: Scene = Vec::new();
+fn earth() -> Hittables {
+    let mut world: Hittables = Vec::new();
 
     let earth_texture = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
     let earth_surface = Arc::new(Lambertian::new(earth_texture));
@@ -157,8 +158,8 @@ fn earth() -> Scene {
     world
 }
 
-fn simple_light() -> Scene {
-    let mut world: Scene = Vec::new();
+fn simple_light() -> Hittables {
+    let mut world: Hittables = Vec::new();
 
     let pertex = Arc::new(Noise::new(4.));
 
@@ -197,8 +198,8 @@ fn simple_light() -> Scene {
     world
 }
 
-fn cornell_box() -> Scene {
-    let mut world: Scene = Vec::new();
+fn cornell_box() -> Hittables {
+    let mut world: Hittables = Vec::new();
 
     let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
     let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
@@ -226,6 +227,82 @@ fn cornell_box() -> Scene {
         white.clone(),
     )));
 
+    let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::new(0., 0., 0.),
+        Point3::new(165., 330., 165.),
+        white.clone(),
+    ));
+    box1 = Arc::new(RotateY::new(box1.clone(), 15.));
+    box1 = Arc::new(Translate::new(box1.clone(), Vec3::new(265., 0., 295.)));
+    world.push(box1);
+
+    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::new(0., 0., 0.),
+        Point3::new(165., 165., 165.),
+        white.clone(),
+    ));
+    box2 = Arc::new(RotateY::new(box2.clone(), -18.));
+    box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
+    world.push(box2);
+
+    world
+}
+
+fn cornell_smoke() -> Hittables {
+    let mut world: Hittables = Vec::new();
+
+    let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
+    let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
+    let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
+    let light = Arc::new(DiffuseLight::from_color(Color::new(7., 7., 7.)));
+
+    world.push(Arc::new(YZRect::new(0., 555., 0., 555., 555., green)));
+    world.push(Arc::new(YZRect::new(0., 555., 0., 555., 0., red)));
+    world.push(Arc::new(XZRect::new(113., 443., 127., 432., 554., light)));
+    world.push(Arc::new(XZRect::new(0., 555., 0., 555., 0., white.clone())));
+    world.push(Arc::new(XZRect::new(
+        0.,
+        555.,
+        0.,
+        555.,
+        555.,
+        white.clone(),
+    )));
+    world.push(Arc::new(XYRect::new(
+        0.,
+        555.,
+        0.,
+        555.,
+        555.,
+        white.clone(),
+    )));
+
+    let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::new(0., 0., 0.),
+        Point3::new(165., 330., 165.),
+        white.clone(),
+    ));
+    box1 = Arc::new(RotateY::new(box1.clone(), 15.));
+    box1 = Arc::new(Translate::new(box1.clone(), Vec3::new(265., 0., 295.)));
+    world.push(Arc::new(ConstantMedium::from_color(
+        box1,
+        0.01,
+        Color::new(0., 0., 0.),
+    )));
+
+    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+        Point3::new(0., 0., 0.),
+        Point3::new(165., 165., 165.),
+        white.clone(),
+    ));
+    box2 = Arc::new(RotateY::new(box2.clone(), -18.));
+    box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
+    world.push(Arc::new(ConstantMedium::from_color(
+        box2,
+        0.01,
+        Color::new(1., 1., 1.),
+    )));
+
     world
 }
 
@@ -236,6 +313,7 @@ pub enum SceneType {
     Earth,
     RectLight,
     CornellBox,
+    CornellSmoke,
 }
 
 pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera, Color) {
@@ -360,6 +438,29 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
         }
         SceneType::CornellBox => {
             let scene = cornell_box();
+            let lookfrom = Point3::new(278., 278., -800.);
+            let lookat = Point3::new(278., 278., 0.);
+            let vfov = 40.;
+            let aperture = 0.;
+
+            return (
+                BVHNode::new(scene, 0., 1.),
+                Camera::new(
+                    lookfrom,
+                    lookat,
+                    vup,
+                    vfov,
+                    aspect_ratio,
+                    aperture,
+                    dist_to_focus,
+                    0.,
+                    1.,
+                ),
+                Color::new(0., 0., 0.),
+            );
+        }
+        SceneType::CornellSmoke => {
+            let scene = cornell_smoke();
             let lookfrom = Point3::new(278., 278., -800.);
             let lookat = Point3::new(278., 278., 0.);
             let vfov = 40.;

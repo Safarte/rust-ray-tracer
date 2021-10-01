@@ -1,5 +1,8 @@
 pub mod aarect;
+pub mod constant_medium;
+pub mod cuboid;
 pub mod sphere;
+pub mod transform;
 
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -7,16 +10,17 @@ use std::sync::Arc;
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::scene::Scene;
 use crate::vec3::Point3;
 use crate::{material::HitRecord, ray::Ray};
+
+pub type Hittables = Vec<Arc<dyn Hittable>>;
 
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
-impl Hittable for Scene {
+impl Hittable for Hittables {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
@@ -96,7 +100,7 @@ impl Hittable for BVHNode {
 }
 
 impl BVHNode {
-    pub fn new(src_objects: Scene, time0: f64, time1: f64) -> Arc<dyn Hittable> {
+    pub fn new(src_objects: Hittables, time0: f64, time1: f64) -> Arc<dyn Hittable> {
         let mut objects = src_objects;
         let left: Arc<dyn Hittable>;
         let right: Arc<dyn Hittable>;

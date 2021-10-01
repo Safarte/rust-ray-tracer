@@ -41,13 +41,13 @@ fn main() {
     // Image
     // const ASPECT_RATIO: f64 = 16. / 9.;
     const ASPECT_RATIO: f64 = 1.;
-    const IMAGE_WIDTH: u32 = 1280;
+    const IMAGE_WIDTH: u32 = 1000;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES: u32 = 1024;
+    const SAMPLES: u32 = 5000;
     const MAX_DEPTH: u32 = 16;
 
     // Scene
-    let (world, camera, background) = get_scene(SceneType::CornellBox, ASPECT_RATIO);
+    let (world, camera, background) = get_scene(SceneType::CornellSmoke, ASPECT_RATIO);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));
