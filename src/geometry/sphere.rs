@@ -22,7 +22,7 @@ impl Sphere {
         let phi = (-p.z()).atan2(p.x()) + PI;
 
         // (u, v)
-        ((phi / 2. * PI), theta / PI)
+        (phi / (2. * PI), theta / PI)
     }
 }
 
@@ -39,11 +39,14 @@ impl Hittable for Sphere {
             let mut root = (-b - sqrtd) / a;
             if t_min <= root && root <= t_max {
                 let p = ray.at(root);
-                let (u, v) = self.get_sphere_uv(p);
+
+                let normal = (p - self.center) / self.radius;
+
+                let (u, v) = self.get_sphere_uv(normal);
 
                 return Some(HitRecord {
                     p,
-                    normal: (p - self.center) / self.radius,
+                    normal,
                     t: root,
                     mat: &*self.material,
                     u,

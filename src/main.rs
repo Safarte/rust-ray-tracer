@@ -43,7 +43,7 @@ fn main() {
     const MAX_DEPTH: i32 = 16;
 
     // Scene
-    let (world, camera) = get_scene(SceneType::PerlinSpheres, ASPECT_RATIO);
+    let (world, camera) = get_scene(SceneType::Random, ASPECT_RATIO);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));

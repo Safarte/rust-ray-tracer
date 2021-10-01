@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use image::io::Reader as ImageReader;
+use image::{GenericImageView, Pixel, RgbImage};
+
 use crate::vec3::{Color, Point3};
 
 use super::perlin::Perlin;
@@ -74,5 +77,54 @@ impl Texture for Noise {
         Color::new(1., 1., 1.)
             * 0.5
             * (1. + (self.scale * p.z() + 10. * self.noise.turb(*p, 7)).sin())
+    }
+}
+
+pub struct ImageTexture {
+    data: Option<RgbImage>,
+    width: u32,
+    height: u32,
+}
+
+impl ImageTexture {
+    pub fn from_file(path: &str) -> ImageTexture {
+        if let Ok(reader) = ImageReader::open(path) {
+            if let Ok(img) = reader.decode() {
+                return ImageTexture {
+                    data: Some(img.to_rgb8()),
+                    width: img.width(),
+                    height: img.height(),
+                };
+            }
+        }
+
+        ImageTexture {
+            data: None,
+            width: 0,
+            height: 0,
+        }
+    }
+}
+
+impl Texture for ImageTexture {
+    fn value(&self, u: f64, v: f64, _p: &Point3) -> Color {
+        if let Some(data) = &self.data {
+            let cu = u.clamp(0., 1.);
+            let cv = 1. - v.clamp(0., 1.);
+
+            let x = ((cu * self.width as f64) as u32).clamp(0, self.width - 1);
+            let y = ((cv * self.height as f64) as u32).clamp(0, self.height - 1);
+
+            let color_scale = 1. / 255.;
+
+            let pixel = data.get_pixel(x, y).channels();
+
+            return Color::new(
+                color_scale * pixel[0] as f64,
+                color_scale * pixel[1] as f64,
+                color_scale * pixel[2] as f64,
+            );
+        }
+        Color::new(1., 1., 0.)
     }
 }

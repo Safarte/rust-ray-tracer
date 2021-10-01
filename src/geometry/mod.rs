@@ -6,6 +6,7 @@ use std::sync::Arc;
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
+use crate::scene::Scene;
 use crate::vec3::Point3;
 use crate::{material::HitRecord, ray::Ray};
 
@@ -14,7 +15,7 @@ pub trait Hittable: Send + Sync {
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
 }
 
-impl Hittable for Vec<Arc<dyn Hittable>> {
+impl Hittable for Scene {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
@@ -94,7 +95,7 @@ impl Hittable for BVHNode {
 }
 
 impl BVHNode {
-    pub fn new(src_objects: Vec<Arc<dyn Hittable>>, time0: f64, time1: f64) -> Arc<dyn Hittable> {
+    pub fn new(src_objects: Scene, time0: f64, time1: f64) -> Arc<dyn Hittable> {
         let mut objects = src_objects;
         let left: Arc<dyn Hittable>;
         let right: Arc<dyn Hittable>;

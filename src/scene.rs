@@ -8,14 +8,16 @@ use crate::{
         sphere::{MovingSphere, Sphere},
         BVHNode, Hittable,
     },
-    material::texture::{Checker, Noise},
+    material::texture::{Checker, ImageTexture, Noise},
     material::{Dielectric, Lambertian, Metal},
     vec3::{Color, Point3, Vec3},
 };
 
-fn random_scene() -> Vec<Arc<dyn Hittable>> {
+pub type Scene = Vec<Arc<dyn Hittable>>;
+
+fn random_scene() -> Scene {
     let mut rng = thread_rng();
-    let mut world: Vec<Arc<dyn Hittable>> = Vec::new();
+    let mut world: Scene = Vec::new();
 
     let pertex = Arc::new(Noise::new(4.));
     let ground_material = Arc::new(Lambertian::new(pertex));
@@ -27,8 +29,8 @@ fn random_scene() -> Vec<Arc<dyn Hittable>> {
 
     let comp = Point3::new(4., 0.2, 0.);
 
-    for a in -11..11 {
-        for b in -11..11 {
+    for a in -5..5 {
+        for b in -5..5 {
             let choose_mat: f64 = rng.gen();
             let center = Point3::new(
                 a as f64 + 0.9 * rng.gen::<f64>(),
@@ -83,21 +85,19 @@ fn random_scene() -> Vec<Arc<dyn Hittable>> {
         radius: 1.,
         material: material.clone(),
     }));
-    // let material = Arc::new(Metal {
-    //     albedo: Color::new(0.7, 0.6, 0.5),
-    //     fuzziness: 0.,
-    // });
+    let img_tex = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
+    let img_mat = Arc::new(Lambertian::new(img_tex));
     world.push(Arc::new(Sphere {
         center: Point3::new(4., 1., 0.),
         radius: 1.,
-        material: material.clone(),
+        material: img_mat,
     }));
 
     world
 }
 
-fn two_spheres() -> Vec<Arc<dyn Hittable>> {
-    let mut world: Vec<Arc<dyn Hittable>> = Vec::new();
+fn two_spheres() -> Scene {
+    let mut world: Scene = Vec::new();
 
     let checker = Arc::new(Checker::from_colors(
         Color::new(0.2, 0.3, 0.1),
@@ -119,8 +119,8 @@ fn two_spheres() -> Vec<Arc<dyn Hittable>> {
     world
 }
 
-fn perlin_spheres() -> Vec<Arc<dyn Hittable>> {
-    let mut world: Vec<Arc<dyn Hittable>> = Vec::new();
+fn perlin_spheres() -> Scene {
+    let mut world: Scene = Vec::new();
 
     let pertex = Arc::new(Noise::new(4.));
 
@@ -139,10 +139,25 @@ fn perlin_spheres() -> Vec<Arc<dyn Hittable>> {
     world
 }
 
+fn earth() -> Scene {
+    let mut world: Scene = Vec::new();
+
+    let earth_texture = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
+    let earth_surface = Arc::new(Lambertian::new(earth_texture));
+    world.push(Arc::new(Sphere {
+        center: Point3::new(0., 0., 0.),
+        radius: 2.,
+        material: earth_surface,
+    }));
+
+    world
+}
+
 pub enum SceneType {
     Random,
     TwoSpheres,
     PerlinSpheres,
+    Earth,
 }
 
 pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera) {
@@ -197,6 +212,28 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
         SceneType::PerlinSpheres => {
             let scene = perlin_spheres();
             let lookfrom = Point3::new(13., 2., 7.);
+            let lookat = Point3::new(0., 0., 0.);
+            let vfov = 20.;
+            let aperture = 0.;
+
+            return (
+                BVHNode::new(scene, 0., 1.),
+                Camera::new(
+                    lookfrom,
+                    lookat,
+                    vup,
+                    vfov,
+                    aspect_ratio,
+                    aperture,
+                    dist_to_focus,
+                    0.,
+                    1.,
+                ),
+            );
+        }
+        SceneType::Earth => {
+            let scene = earth();
+            let lookfrom = Point3::new(13., 2., 3.);
             let lookat = Point3::new(0., 0., 0.);
             let vfov = 20.;
             let aperture = 0.;

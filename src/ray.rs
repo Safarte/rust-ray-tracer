@@ -2,9 +2,9 @@ use crate::vec3::{Point3, Vec3};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
-    pub origin: Point3,
-    pub direction: Vec3,
-    pub time: f64,
+    origin: Point3,
+    direction: Vec3,
+    time: f64,
 }
 
 impl Ray {
