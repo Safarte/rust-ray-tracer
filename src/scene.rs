@@ -5,10 +5,14 @@ use rand::{thread_rng, Rng};
 use crate::{
     camera::Camera,
     geometry::{
+        aarect::{XYRect, XZRect, YZRect},
         sphere::{MovingSphere, Sphere},
         BVHNode, Hittable,
     },
-    material::texture::{Checker, ImageTexture, Noise},
+    material::{
+        texture::{Checker, ImageTexture, Noise},
+        DiffuseLight,
+    },
     material::{Dielectric, Lambertian, Metal},
     vec3::{Color, Point3, Vec3},
 };
@@ -153,14 +157,88 @@ fn earth() -> Scene {
     world
 }
 
+fn simple_light() -> Scene {
+    let mut world: Scene = Vec::new();
+
+    let pertex = Arc::new(Noise::new(4.));
+
+    world.push(Arc::new(Sphere {
+        center: Point3::new(0., -1000., 0.),
+        radius: 1000.,
+        material: Arc::new(Lambertian::new(pertex.clone())),
+    }));
+
+    world.push(Arc::new(Sphere {
+        center: Point3::new(0., 2., 0.),
+        radius: 2.,
+        material: Arc::new(Metal {
+            albedo: Color::new(0.5, 0.5, 0.5),
+            fuzziness: 0.1,
+        }),
+    }));
+
+    let diff_light = Arc::new(DiffuseLight::from_color(Color::new(4., 4., 4.)));
+
+    world.push(Arc::new(XYRect::new(
+        3.,
+        5.,
+        1.,
+        3.,
+        -2.,
+        diff_light.clone(),
+    )));
+
+    world.push(Arc::new(Sphere {
+        center: Point3::new(0., 6., 0.),
+        radius: 1.,
+        material: diff_light.clone(),
+    }));
+
+    world
+}
+
+fn cornell_box() -> Scene {
+    let mut world: Scene = Vec::new();
+
+    let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
+    let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
+    let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
+    let light = Arc::new(DiffuseLight::from_color(Color::new(15., 15., 15.)));
+
+    world.push(Arc::new(YZRect::new(0., 555., 0., 555., 555., green)));
+    world.push(Arc::new(YZRect::new(0., 555., 0., 555., 0., red)));
+    world.push(Arc::new(XZRect::new(213., 343., 227., 332., 554., light)));
+    world.push(Arc::new(XZRect::new(0., 555., 0., 555., 0., white.clone())));
+    world.push(Arc::new(XZRect::new(
+        0.,
+        555.,
+        0.,
+        555.,
+        555.,
+        white.clone(),
+    )));
+    world.push(Arc::new(XYRect::new(
+        0.,
+        555.,
+        0.,
+        555.,
+        555.,
+        white.clone(),
+    )));
+
+    world
+}
+
 pub enum SceneType {
     Random,
     TwoSpheres,
     PerlinSpheres,
     Earth,
+    RectLight,
+    CornellBox,
 }
 
-pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera) {
+pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera, Color) {
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
 
@@ -185,6 +263,7 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
                     0.,
                     1.,
                 ),
+                Color::new(0.7, 0.8, 1.),
             );
         }
         SceneType::TwoSpheres => {
@@ -207,6 +286,7 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
                     0.,
                     1.,
                 ),
+                Color::new(0.7, 0.8, 1.),
             );
         }
         SceneType::PerlinSpheres => {
@@ -229,6 +309,7 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
                     0.,
                     1.,
                 ),
+                Color::new(0.7, 0.8, 1.),
             );
         }
         SceneType::Earth => {
@@ -251,6 +332,53 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
                     0.,
                     1.,
                 ),
+                Color::new(0.7, 0.8, 1.),
+            );
+        }
+        SceneType::RectLight => {
+            let scene = simple_light();
+            let lookfrom = Point3::new(26., 6., 6.);
+            let lookat = Point3::new(0., 2., 0.);
+            let vfov = 20.;
+            let aperture = 0.;
+
+            return (
+                BVHNode::new(scene, 0., 1.),
+                Camera::new(
+                    lookfrom,
+                    lookat,
+                    vup,
+                    vfov,
+                    aspect_ratio,
+                    aperture,
+                    dist_to_focus,
+                    0.,
+                    1.,
+                ),
+                Color::new(0., 0., 0.),
+            );
+        }
+        SceneType::CornellBox => {
+            let scene = cornell_box();
+            let lookfrom = Point3::new(278., 278., -800.);
+            let lookat = Point3::new(278., 278., 0.);
+            let vfov = 40.;
+            let aperture = 0.;
+
+            return (
+                BVHNode::new(scene, 0., 1.),
+                Camera::new(
+                    lookfrom,
+                    lookat,
+                    vup,
+                    vfov,
+                    aspect_ratio,
+                    aperture,
+                    dist_to_focus,
+                    0.,
+                    1.,
+                ),
+                Color::new(0., 0., 0.),
             );
         }
     }

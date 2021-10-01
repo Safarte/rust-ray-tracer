@@ -12,12 +12,11 @@ use crate::{
 
 use self::texture::{SolidColor, Texture};
 
-#[derive(Clone, Copy)]
-pub struct HitRecord<'a> {
+pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
     pub t: f64,
-    pub mat: &'a dyn Material,
+    pub mat: Arc<dyn Material>,
     pub u: f64,
     pub v: f64,
 }
@@ -29,6 +28,9 @@ pub struct Scatter {
 
 pub trait Material: Send + Sync {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter>;
+    fn emitted(&self, _u: f64, _v: f64, _p: &Point3) -> Color {
+        Color::new(0., 0., 0.)
+    }
 }
 
 pub struct Lambertian {
@@ -144,4 +146,26 @@ fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
     let r0 = (1. - ref_idx) / (1. + ref_idx);
     let r0s = r0 * r0;
     r0s + (1. - r0s) * (1. - cosine).powi(5)
+}
+
+pub struct DiffuseLight {
+    pub emit: Arc<dyn Texture>,
+}
+
+impl DiffuseLight {
+    pub fn from_color(color: Color) -> DiffuseLight {
+        DiffuseLight {
+            emit: Arc::new(SolidColor::new(color)),
+        }
+    }
+}
+
+impl Material for DiffuseLight {
+    fn scatter(&self, _r_in: &Ray, _rec: &HitRecord) -> Option<Scatter> {
+        None
+    }
+
+    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
+        self.emit.value(u, v, p)
+    }
 }

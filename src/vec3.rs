@@ -202,7 +202,7 @@ pub type Point3 = Vec3;
 pub type Color = Vec3;
 
 impl Color {
-    pub fn get_color(&self, samples: i32) -> Rgb<u8> {
+    pub fn get_color(&self, samples: u32) -> Rgb<u8> {
         // Divide color by number of samples
         let scale = 1. / (samples as f64);
 

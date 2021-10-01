@@ -16,34 +16,38 @@ use vec3::Color;
 
 use crate::scene::{get_scene, SceneType};
 
-fn ray_color(ray: &ray::Ray, world: Arc<dyn Hittable>, depth: i32) -> Color {
+fn ray_color(ray: &ray::Ray, background: &Color, world: Arc<dyn Hittable>, depth: u32) -> Color {
     if depth <= 0 {
         return Color::new(0., 0., 0.);
     }
 
     if let Some(hit) = world.hit(ray, 0.0001, f64::INFINITY) {
+        let emitted = hit.mat.emitted(hit.u, hit.v, &hit.p);
+
         if let Some(scatter) = hit.mat.scatter(ray, &hit) {
             if let Some(scattered) = scatter.scattered {
-                return scatter.attenuation * ray_color(&scattered, world, depth - 1);
+                return emitted
+                    + scatter.attenuation * ray_color(&scattered, background, world, depth - 1);
             }
         }
-        return Color::new(0., 0., 0.);
+        return emitted;
     }
-    let unit_direction = ray.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.);
-    (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.)
+
+    // The ray hit nothing
+    *background
 }
 
 fn main() {
     // Image
-    const ASPECT_RATIO: f64 = 16. / 9.;
+    // const ASPECT_RATIO: f64 = 16. / 9.;
+    const ASPECT_RATIO: f64 = 1.;
     const IMAGE_WIDTH: u32 = 1280;
     const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES: i32 = 64;
-    const MAX_DEPTH: i32 = 16;
+    const SAMPLES: u32 = 1024;
+    const MAX_DEPTH: u32 = 16;
 
     // Scene
-    let (world, camera) = get_scene(SceneType::Random, ASPECT_RATIO);
+    let (world, camera, background) = get_scene(SceneType::CornellBox, ASPECT_RATIO);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));
@@ -57,7 +61,7 @@ fn main() {
                 let u = (x as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
                 let v = (y as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
                 let ray = camera.get_ray(u, v);
-                color += ray_color(&ray, world.clone(), MAX_DEPTH);
+                color += ray_color(&ray, &background, world.clone(), MAX_DEPTH);
             }
 
             let pixel = color.get_color(SAMPLES);

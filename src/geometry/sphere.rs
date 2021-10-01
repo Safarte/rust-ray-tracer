@@ -48,7 +48,7 @@ impl Hittable for Sphere {
                     p,
                     normal,
                     t: root,
-                    mat: &*self.material,
+                    mat: self.material.clone(),
                     u,
                     v,
                 });
@@ -63,7 +63,7 @@ impl Hittable for Sphere {
                     p,
                     normal: (p - self.center) / self.radius,
                     t: root,
-                    mat: &*self.material,
+                    mat: self.material.clone(),
                     u,
                     v,
                 });
@@ -123,7 +123,7 @@ impl Hittable for MovingSphere {
                     p,
                     normal: (p - self.center(ray.time())) / self.radius,
                     t: root,
-                    mat: &*self.material,
+                    mat: self.material.clone(),
                     u,
                     v,
                 });
@@ -138,7 +138,7 @@ impl Hittable for MovingSphere {
                     p,
                     normal: (p - self.center(ray.time())) / self.radius,
                     t: root,
-                    mat: &*self.material,
+                    mat: self.material.clone(),
                     u,
                     v,
                 });

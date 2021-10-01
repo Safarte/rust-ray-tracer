@@ -1,3 +1,4 @@
+pub mod aarect;
 pub mod sphere;
 
 use std::cmp::Ordering;
@@ -22,7 +23,7 @@ impl Hittable for Scene {
             if let Some(next_hit) = hittable.hit(ray, t_min, t_max) {
                 match hit {
                     None => hit = Some(next_hit),
-                    Some(prev_hit) => {
+                    Some(ref prev_hit) => {
                         if next_hit.t < prev_hit.t {
                             hit = Some(next_hit);
                         }
