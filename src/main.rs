@@ -6,74 +6,90 @@ mod ray;
 mod scene;
 mod vec3;
 
+use clap::App;
 use image::{ImageBuffer, RgbImage};
-use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::{prelude::*, ThreadPoolBuilder};
+use std::sync::Mutex;
 
-use geometry::Hittable;
 use rand::{thread_rng, Rng};
 use vec3::Color;
 
-use crate::scene::{get_scene, SceneType};
-
-fn ray_color(ray: &ray::Ray, background: &Color, world: Arc<dyn Hittable>, depth: u32) -> Color {
-    if depth <= 0 {
-        return Color::new(0., 0., 0.);
-    }
-
-    if let Some(hit) = world.hit(ray, 0.0001, f64::INFINITY) {
-        let emitted = hit.mat.emitted(hit.u, hit.v, &hit.p);
-
-        if let Some(scatter) = hit.mat.scatter(ray, &hit) {
-            if let Some(scattered) = scatter.scattered {
-                return emitted
-                    + scatter.attenuation * ray_color(&scattered, background, world, depth - 1);
-            }
-        }
-        return emitted;
-    }
-
-    // The ray hit nothing
-    *background
-}
+use crate::{
+    ray::ray_color,
+    scene::{get_scene, SceneType},
+};
 
 fn main() {
-    // Image
-    // const ASPECT_RATIO: f64 = 16. / 9.;
-    const ASPECT_RATIO: f64 = 1.;
-    const IMAGE_WIDTH: u32 = 1000;
-    const IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-    const SAMPLES: u32 = 5000;
+    // CLI args parsing
+    let matches = App::new("Ray Tracer")
+        .version("0.1")
+        .author("Brice C.")
+        .about("Ray-tracing based rendering engine")
+        .args_from_usage(
+            "-t, --threads=[NUM_THREADS] 'Sets the desired number of threads'
+            -o, --output=[FILE]          'Sets the output image file name'
+            <WIDTH>                      'Sets the image width'
+            <HEIGHT>                     'Sets the image height'
+            <SAMPLES>                    'Sets the number of samples per pixel'",
+        )
+        .get_matches();
+
+    let threads: i32 = matches.value_of("threads").unwrap_or("-1").parse().unwrap();
+
+    if threads > 0 {
+        ThreadPoolBuilder::new()
+            .num_threads(threads.abs() as usize)
+            .build_global()
+            .unwrap();
+    }
+
+    // Configuration
+    let output_file = matches.value_of("output").unwrap_or("output.png");
+    let width: u32 = matches.value_of("WIDTH").unwrap().parse().unwrap();
+    let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
+    let aspect_ratio = (width as f64) / (height as f64);
+    let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
     const MAX_DEPTH: u32 = 16;
 
+    // Progress bar
+    let bar = ProgressBar::new(height.into());
+    bar.set_style(
+        ProgressStyle::default_bar()
+            .template("{percent}% {bar:80.cyan/blue} [Elapsed: {elapsed_precise} | Remaining: {eta_precise}]")
+            .progress_chars("##-"),
+    );
+
     // Scene
-    let (world, camera, background) = get_scene(SceneType::CornellSmoke, ASPECT_RATIO);
+    let (world, camera, background) = get_scene(SceneType::CornellBox, aspect_ratio);
 
     // Render
-    let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(IMAGE_WIDTH, IMAGE_HEIGHT));
+    let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
 
-    for y in 0..IMAGE_HEIGHT {
-        (0..IMAGE_WIDTH).into_par_iter().for_each(|x| {
+    for y in 0..height {
+        (0..width).into_par_iter().for_each(|x| {
             let mut rng = thread_rng();
             let mut color = Color::new(0., 0., 0.);
 
-            for _ in 0..SAMPLES {
-                let u = (x as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH as f64 - 1.);
-                let v = (y as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT as f64 - 1.);
+            for _ in 0..samples {
+                let u = (x as f64 + rng.gen::<f64>()) / (width as f64 - 1.);
+                let v = (y as f64 + rng.gen::<f64>()) / (height as f64 - 1.);
                 let ray = camera.get_ray(u, v);
                 color += ray_color(&ray, &background, world.clone(), MAX_DEPTH);
             }
 
-            let pixel = color.get_color(SAMPLES);
+            let pixel = color.get_color(samples);
             {
                 img.lock()
                     .unwrap()
-                    .put_pixel(x as u32, IMAGE_HEIGHT - 1 - y, pixel);
+                    .put_pixel(x as u32, height - 1 - y, pixel);
             }
         });
+        bar.inc(1);
     }
+    bar.finish();
 
     {
-        let _ = img.lock().unwrap().save("output.png");
+        let _ = img.lock().unwrap().save(output_file);
     }
 }

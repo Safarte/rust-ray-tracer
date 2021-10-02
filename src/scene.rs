@@ -306,6 +306,127 @@ fn cornell_smoke() -> Hittables {
     world
 }
 
+fn final_scene() -> Hittables {
+    let mut rng = thread_rng();
+
+    let mut world: Hittables = Vec::new();
+
+    let mut boxes1: Hittables = Vec::new();
+
+    let ground = Arc::new(Lambertian::from_rgb(0.48, 0.83, 0.53));
+
+    let boxes_per_side = 20;
+    for i in 0..boxes_per_side {
+        for j in 0..boxes_per_side {
+            let w = 100.;
+            let x0 = -1000. + (i as f64) * w;
+            let z0 = -1000. + (j as f64) * w;
+            let y0 = 0.;
+            let x1 = x0 + w;
+            let y1: f64 = rng.gen_range((1.)..(101.));
+            let z1 = z0 + w;
+
+            boxes1.push(Arc::new(Cuboid::new(
+                Point3::new(x0, y0, z0),
+                Point3::new(x1, y1, z1),
+                ground.clone(),
+            )))
+        }
+    }
+
+    world.push(BVHNode::new(boxes1, 0., 1.));
+
+    let light = Arc::new(DiffuseLight::from_color(Color::new(7., 7., 7.)));
+    world.push(Arc::new(XZRect::new(
+        123.,
+        423.,
+        147.,
+        412.,
+        554.,
+        light.clone(),
+    )));
+
+    let center0 = Point3::new(400., 400., 200.);
+    let center1 = center0 + Vec3::new(30., 0., 0.);
+    let moving_sphere_mat = Arc::new(Lambertian::from_rgb(0.7, 0.3, 0.1));
+    world.push(Arc::new(MovingSphere {
+        center0,
+        center1,
+        time0: 0.,
+        time1: 1.,
+        radius: 50.,
+        material: moving_sphere_mat,
+    }));
+
+    world.push(Arc::new(Sphere {
+        center: Point3::new(260., 150., 45.),
+        radius: 45.,
+        material: Arc::new(Dielectric { ir: 1.5 }),
+    }));
+    world.push(Arc::new(Sphere {
+        center: Point3::new(0., 150., 145.),
+        radius: 50.,
+        material: Arc::new(Metal {
+            albedo: Color::new(0.8, 0.8, 0.9),
+            fuzziness: 1.,
+        }),
+    }));
+    let boundary = Arc::new(Sphere {
+        center: Point3::new(360., 150., 145.),
+        radius: 70.,
+        material: Arc::new(Dielectric { ir: 1.5 }),
+    });
+    world.push(boundary.clone());
+    world.push(Arc::new(ConstantMedium::from_color(
+        boundary.clone(),
+        0.2,
+        Color::new(0.2, 0.4, 0.9),
+    )));
+    let fog = Arc::new(Sphere {
+        center: Point3::new(0., 0., 0.),
+        radius: 5000.,
+        material: Arc::new(Dielectric { ir: 1.5 }),
+    });
+    world.push(Arc::new(ConstantMedium::from_color(
+        fog.clone(),
+        0.0001,
+        Color::new(1., 1., 1.),
+    )));
+    let emat = Arc::new(Lambertian::new(Arc::new(ImageTexture::from_file(
+        "earthmap.jpg",
+    ))));
+    world.push(Arc::new(Sphere {
+        center: Point3::new(400., 200., 400.),
+        radius: 100.,
+        material: emat,
+    }));
+    let pertex = Arc::new(Lambertian::new(Arc::new(Noise::new(2.))));
+    world.push(Arc::new(Sphere {
+        center: Point3::new(220., 280., 200.),
+        radius: 80.,
+        material: pertex,
+    }));
+
+    let mut boxes2: Hittables = Vec::new();
+    let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
+    let ns = 1000;
+    for _j in 0..ns {
+        boxes2.push(Arc::new(Sphere {
+            center: Point3::random_range(0., 165.),
+            radius: 10.,
+            material: white.clone(),
+        }));
+    }
+
+    world.push(Arc::new(Translate::new(
+        Arc::new(RotateY::new(BVHNode::new(boxes2, 0., 1.), 15.)),
+        Vec3::new(-100., 270., 395.),
+    )));
+
+    world
+}
+
+#[allow(dead_code)]
 pub enum SceneType {
     Random,
     TwoSpheres,
@@ -314,6 +435,7 @@ pub enum SceneType {
     RectLight,
     CornellBox,
     CornellSmoke,
+    FinalScene,
 }
 
 pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera, Color) {
@@ -462,6 +584,29 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
         SceneType::CornellSmoke => {
             let scene = cornell_smoke();
             let lookfrom = Point3::new(278., 278., -800.);
+            let lookat = Point3::new(278., 278., 0.);
+            let vfov = 40.;
+            let aperture = 0.;
+
+            return (
+                BVHNode::new(scene, 0., 1.),
+                Camera::new(
+                    lookfrom,
+                    lookat,
+                    vup,
+                    vfov,
+                    aspect_ratio,
+                    aperture,
+                    dist_to_focus,
+                    0.,
+                    1.,
+                ),
+                Color::new(0., 0., 0.),
+            );
+        }
+        SceneType::FinalScene => {
+            let scene = final_scene();
+            let lookfrom = Point3::new(478., 278., -600.);
             let lookat = Point3::new(278., 278., 0.);
             let vfov = 40.;
             let aperture = 0.;

@@ -10,3 +10,5 @@ edition = "2018"
 rand = "0.8.3"
 image = "0.23.14"
 rayon = "1.0.3"
+indicatif = "*"
+clap = { version = "~2.33.3", features = ["yaml"] }
