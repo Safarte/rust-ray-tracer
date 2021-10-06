@@ -1,6 +1,9 @@
-use std::f64::consts::PI;
+use std::f64::{consts::PI, INFINITY};
 use std::sync::Arc;
 
+use rand::{thread_rng, Rng};
+
+use crate::vec3::OrthNormBasis;
 use crate::{
     aabb::{surrounding_box, AABB},
     material::{HitRecord, Material},
@@ -77,6 +80,23 @@ impl Hittable for Sphere {
             min: self.center - Vec3::new(self.radius, self.radius, self.radius),
             max: self.center + Vec3::new(self.radius, self.radius, self.radius),
         })
+    }
+
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+        if let None = self.hit(&Ray::new(origin, v, 0.), 0.0001, INFINITY) {
+            return 0.;
+        }
+        let cos_theta_max =
+            (1. - self.radius * self.radius / (self.center - origin).length_squared()).sqrt();
+        let solid_angle = 2. * PI * (1. - cos_theta_max);
+        1. / solid_angle
+    }
+
+    fn random(&self, origin: Point3) -> Vec3 {
+        let direction = self.center - origin;
+        let dist_squared = direction.length_squared();
+        let uvw = OrthNormBasis::from_w(direction);
+        uvw.local(&random_to_sphere(self.radius, dist_squared))
     }
 }
 
@@ -158,4 +178,17 @@ impl Hittable for MovingSphere {
         };
         Some(surrounding_box(box0, box1))
     }
+}
+
+fn random_to_sphere(radius: f64, dist_squared: f64) -> Vec3 {
+    let mut rng = thread_rng();
+    let r1: f64 = rng.gen();
+    let r2: f64 = rng.gen();
+    let z = 1. + r2 * ((1. - radius * radius / dist_squared).sqrt() - 1.);
+
+    let phi = 2. * PI * r1;
+    let x = phi.cos() * (1. - z * z).sqrt();
+    let y = phi.sin() * (1. - z * z).sqrt();
+
+    Vec3::new(x, y, z)
 }

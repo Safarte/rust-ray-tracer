@@ -10,7 +10,7 @@ use crate::{
         cuboid::Cuboid,
         sphere::{MovingSphere, Sphere},
         transform::{RotateY, Translate},
-        BVHNode, Hittable, Hittables,
+        BVHNode, FlipFace, Hittable, Hittables,
     },
     material::{
         texture::{Checker, ImageTexture, Noise},
@@ -204,11 +204,21 @@ fn cornell_box() -> Hittables {
     let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
     let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
     let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
-    let light = Arc::new(DiffuseLight::from_color(Color::new(15., 15., 15.)));
+    let red_light = Arc::new(DiffuseLight::from_color(Color::new(30., 0., 0.)));
+    let green_light = Arc::new(DiffuseLight::from_color(Color::new(0., 30., 0.)));
+    let blue_light = Arc::new(DiffuseLight::from_color(Color::new(0., 0., 30.)));
 
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 555., green)));
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 0., red)));
-    world.push(Arc::new(XZRect::new(213., 343., 227., 332., 554., light)));
+    world.push(Arc::new(FlipFace {
+        hittable: Arc::new(XZRect::new(13., 143., 227., 332., 554., red_light)),
+    }));
+    world.push(Arc::new(FlipFace {
+        hittable: Arc::new(XZRect::new(213., 343., 227., 332., 554., green_light)),
+    }));
+    world.push(Arc::new(FlipFace {
+        hittable: Arc::new(XZRect::new(413., 543., 227., 332., 554., blue_light)),
+    }));
     world.push(Arc::new(XZRect::new(0., 555., 0., 555., 0., white.clone())));
     world.push(Arc::new(XZRect::new(
         0.,
@@ -227,23 +237,33 @@ fn cornell_box() -> Hittables {
         white.clone(),
     )));
 
+    let aluminum = Arc::new(Metal {
+        albedo: Color::new(0.8, 0.85, 0.88),
+        fuzziness: 0.,
+    });
     let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
         Point3::new(0., 0., 0.),
         Point3::new(165., 330., 165.),
-        white.clone(),
+        aluminum,
     ));
     box1 = Arc::new(RotateY::new(box1.clone(), 15.));
     box1 = Arc::new(Translate::new(box1.clone(), Vec3::new(265., 0., 295.)));
     world.push(box1);
 
-    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
-        Point3::new(0., 0., 0.),
-        Point3::new(165., 165., 165.),
-        white.clone(),
-    ));
-    box2 = Arc::new(RotateY::new(box2.clone(), -18.));
-    box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
-    world.push(box2);
+    // let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
+    //     Point3::new(0., 0., 0.),
+    //     Point3::new(165., 165., 165.),
+    //     white.clone(),
+    // ));
+    // box2 = Arc::new(RotateY::new(box2.clone(), -18.));
+    // box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
+    // world.push(box2);
+    let glass = Arc::new(Dielectric { ir: 1.5 });
+    world.push(Arc::new(Sphere {
+        center: Point3::new(190., 90., 190.),
+        radius: 90.,
+        material: glass,
+    }));
 
     world
 }
@@ -315,7 +335,7 @@ fn final_scene() -> Hittables {
 
     let ground = Arc::new(Lambertian::from_rgb(0.48, 0.83, 0.53));
 
-    let boxes_per_side = 20;
+    let boxes_per_side = 15;
     for i in 0..boxes_per_side {
         for j in 0..boxes_per_side {
             let w = 100.;
@@ -409,7 +429,7 @@ fn final_scene() -> Hittables {
 
     let mut boxes2: Hittables = Vec::new();
     let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
-    let ns = 1000;
+    let ns = 10;
     for _j in 0..ns {
         boxes2.push(Arc::new(Sphere {
             center: Point3::random_range(0., 165.),

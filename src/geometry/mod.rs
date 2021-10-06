@@ -10,14 +10,21 @@ use std::sync::Arc;
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::vec3::Point3;
+use crate::vec3::{Point3, Vec3};
 use crate::{material::HitRecord, ray::Ray};
 
 pub type Hittables = Vec<Arc<dyn Hittable>>;
 
+#[allow(unused)]
 pub trait Hittable: Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+        0.
+    }
+    fn random(&self, origin: Point3) -> Vec3 {
+        Vec3::new(1., 0., 0.)
+    }
 }
 
 impl Hittable for Hittables {
@@ -63,6 +70,22 @@ impl Hittable for Hittables {
         }
 
         Some(out)
+    }
+
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+        let weight = 1. / self.len() as f64;
+        let mut sum = 0.;
+
+        for object in self.iter() {
+            sum += weight * object.pdf_value(origin, v);
+        }
+
+        sum
+    }
+
+    fn random(&self, origin: Point3) -> Vec3 {
+        let mut rng = thread_rng();
+        self[rng.gen_range(0..self.len())].random(origin)
     }
 }
 
@@ -153,4 +176,27 @@ fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize) -> Ord
         }
     }
     Ordering::Equal
+}
+
+pub struct FlipFace {
+    pub hittable: Arc<dyn Hittable>,
+}
+
+impl Hittable for FlipFace {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        if let Some(rec) = self.hittable.hit(ray, t_min, t_max) {
+            let mut new_rec = rec;
+            new_rec.normal = Vec3::new(
+                new_rec.normal.x(),
+                -new_rec.normal.y().abs(),
+                new_rec.normal.z(),
+            );
+            return Some(new_rec);
+        }
+        None
+    }
+
+    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+        self.hittable.bounding_box(time0, time1)
+    }
 }

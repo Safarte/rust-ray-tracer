@@ -2,6 +2,7 @@ mod aabb;
 mod camera;
 mod geometry;
 mod material;
+mod pdf;
 mod ray;
 mod scene;
 mod vec3;
@@ -10,14 +11,17 @@ use clap::App;
 use image::{ImageBuffer, RgbImage};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::{prelude::*, ThreadPoolBuilder};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rand::{thread_rng, Rng};
 use vec3::Color;
 
 use crate::{
+    geometry::{aarect::XZRect, sphere::Sphere, Hittable, Hittables},
+    material::DiffuseLight,
     ray::ray_color,
     scene::{get_scene, SceneType},
+    vec3::Point3,
 };
 
 fn main() {
@@ -50,7 +54,7 @@ fn main() {
     let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
     let aspect_ratio = (width as f64) / (height as f64);
     let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
-    const MAX_DEPTH: u32 = 16;
+    const MAX_DEPTH: u32 = 50;
 
     // Progress bar
     let bar = ProgressBar::new(height.into());
@@ -62,6 +66,39 @@ fn main() {
 
     // Scene
     let (world, camera, background) = get_scene(SceneType::CornellBox, aspect_ratio);
+
+    let light = Arc::new(DiffuseLight::from_color(Color::new(0., 30., 0.)));
+    let mut light_objects: Hittables = Vec::new();
+    light_objects.push(Arc::new(XZRect::new(
+        13.,
+        143.,
+        227.,
+        332.,
+        554.,
+        light.clone(),
+    )));
+    light_objects.push(Arc::new(XZRect::new(
+        213.,
+        343.,
+        227.,
+        332.,
+        554.,
+        light.clone(),
+    )));
+    light_objects.push(Arc::new(XZRect::new(
+        413.,
+        543.,
+        227.,
+        332.,
+        554.,
+        light.clone(),
+    )));
+    light_objects.push(Arc::new(Sphere {
+        center: Point3::new(190., 90., 190.),
+        radius: 90.,
+        material: light.clone(),
+    }));
+    let lights: Arc<dyn Hittable> = Arc::new(light_objects);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
@@ -75,7 +112,7 @@ fn main() {
                 let u = (x as f64 + rng.gen::<f64>()) / (width as f64 - 1.);
                 let v = (y as f64 + rng.gen::<f64>()) / (height as f64 - 1.);
                 let ray = camera.get_ray(u, v);
-                color += ray_color(&ray, &background, world.clone(), MAX_DEPTH);
+                color += ray_color(&ray, &background, world.clone(), lights.clone(), MAX_DEPTH);
             }
 
             let pixel = color.get_color(samples);

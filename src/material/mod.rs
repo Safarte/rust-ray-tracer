@@ -1,11 +1,12 @@
 mod perlin;
 pub mod texture;
 
-use std::sync::Arc;
+use std::{f64::consts::PI, sync::Arc};
 
 use rand::{thread_rng, Rng};
 
 use crate::{
+    pdf::{CosinePDF, PDF},
     ray::Ray,
     vec3::{Color, Point3, Vec3},
 };
@@ -22,13 +23,20 @@ pub struct HitRecord {
 }
 
 pub struct Scatter {
-    pub scattered: Option<Ray>,
+    pub specular_ray: Option<Ray>,
     pub attenuation: Color,
+    pub pdf: Option<Arc<dyn PDF>>,
 }
 
+#[allow(unused)]
 pub trait Material: Send + Sync {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter>;
-    fn emitted(&self, _u: f64, _v: f64, _p: &Point3) -> Color {
+    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        None
+    }
+    fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        0.
+    }
+    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f64, v: f64, p: &Point3) -> Color {
         Color::new(0., 0., 0.)
     }
 }
@@ -52,17 +60,17 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
-        let mut scatter_direction = rec.normal + Vec3::random_unit_vector();
-
-        if scatter_direction.near_zero() {
-            scatter_direction = rec.normal;
-        }
-
+    fn scatter(&self, _r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         Some(Scatter {
-            scattered: Some(Ray::new(rec.p, scatter_direction, r_in.time())),
+            specular_ray: None,
             attenuation: self.albedo.value(rec.u, rec.v, &rec.p),
+            pdf: Some(Arc::new(CosinePDF::new(rec.normal))),
         })
+    }
+
+    fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f64 {
+        let cosine = rec.normal.dot(&scattered.direction().unit_vector()) / PI;
+        cosine.max(0.)
     }
 }
 
@@ -81,8 +89,9 @@ impl Material for Metal {
         );
         if scattered.direction().dot(&rec.normal) > 0. {
             return Some(Scatter {
-                scattered: Some(scattered),
+                specular_ray: Some(scattered),
                 attenuation: self.albedo,
+                pdf: None,
             });
         }
         None
@@ -111,18 +120,20 @@ impl Material for Dielectric {
         if let Some(refracted) = refract(unit_direction, n, refraction_ratio) {
             if reflectance(cos_theta, self.ir) < rng.gen() {
                 return Some(Scatter {
-                    scattered: Some(Ray::new(rec.p, refracted, r_in.time())),
+                    specular_ray: Some(Ray::new(rec.p, refracted, r_in.time())),
                     attenuation,
+                    pdf: None,
                 });
             }
         }
         Some(Scatter {
-            scattered: Some(Ray::new(
+            specular_ray: Some(Ray::new(
                 rec.p,
                 reflect(unit_direction, rec.normal),
                 r_in.time(),
             )),
             attenuation,
+            pdf: None,
         })
     }
 }
@@ -165,8 +176,11 @@ impl Material for DiffuseLight {
         None
     }
 
-    fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
-        self.emit.value(u, v, p)
+    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f64, v: f64, p: &Point3) -> Color {
+        if r_in.direction().dot(&rec.normal) < 0. {
+            return self.emit.value(u, v, p);
+        }
+        Color::new(0., 0., 0.)
     }
 }
 
@@ -185,8 +199,9 @@ impl Isotropic {
 impl Material for Isotropic {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         Some(Scatter {
-            scattered: Some(Ray::new(rec.p, Vec3::random_in_unit_sphere(), r_in.time())),
+            specular_ray: Some(Ray::new(rec.p, Vec3::random_in_unit_sphere(), r_in.time())),
             attenuation: self.albedo.value(rec.u, rec.v, &rec.p),
+            pdf: None,
         })
     }
 }

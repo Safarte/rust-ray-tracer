@@ -1,3 +1,4 @@
+use std::f64::consts::PI;
 use std::fmt;
 use std::ops;
 
@@ -40,6 +41,14 @@ impl Vec3 {
 
     pub fn random_unit_vector() -> Vec3 {
         Vec3::random_in_unit_sphere().unit_vector()
+    }
+
+    pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
+        let in_unit_sphere = Vec3::random_in_unit_sphere();
+        if in_unit_sphere.dot(normal) > 0. {
+            return in_unit_sphere;
+        }
+        -in_unit_sphere
     }
 
     pub fn x(&self) -> f64 {
@@ -216,5 +225,33 @@ impl Color {
             (256. * g.clamp(0., 0.999)) as u8,
             (256. * b.clamp(0., 0.999)) as u8,
         ])
+    }
+}
+
+pub struct OrthNormBasis {
+    pub u: Vec3,
+    pub v: Vec3,
+    pub w: Vec3,
+}
+
+impl OrthNormBasis {
+    pub fn from_w(n: Vec3) -> OrthNormBasis {
+        let w = n.unit_vector();
+
+        let a: Vec3;
+        if w.x().abs() > 0.9 {
+            a = Vec3::new(0., 1., 0.)
+        } else {
+            a = Vec3::new(1., 0., 0.)
+        }
+
+        let v = w.cross(&a).unit_vector();
+        let u = w.cross(&v);
+
+        OrthNormBasis { u, v, w }
+    }
+
+    pub fn local(&self, a: &Vec3) -> Vec3 {
+        a.x() * self.u + a.y() * self.v + a.z() * self.w
     }
 }

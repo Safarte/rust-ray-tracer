@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::{f64::INFINITY, sync::Arc};
+
+use rand::{thread_rng, Rng};
 
 use crate::{
     aabb::AABB,
@@ -112,6 +114,27 @@ impl Hittable for XZRect {
             min: Point3::new(self.x0, self.k - 0.0001, self.z0),
             max: Point3::new(self.x1, self.k + 0.0001, self.z1),
         })
+    }
+
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+        if let Some(rec) = self.hit(&Ray::new(origin, v, 0.), 0.001, INFINITY) {
+            let area = (self.x1 - self.x0) * (self.z1 - self.z0);
+            let dist_squared = rec.t * rec.t * v.length_squared();
+            let cosine = v.dot(&rec.normal).abs() / v.length();
+
+            return dist_squared / (cosine * area);
+        }
+        0.
+    }
+
+    fn random(&self, origin: Point3) -> Vec3 {
+        let mut rng = thread_rng();
+        let random_point = Point3::new(
+            rng.gen_range(self.x0..self.x1),
+            self.k,
+            rng.gen_range(self.z0..self.z1),
+        );
+        random_point - origin
     }
 }
 
