@@ -8,7 +8,7 @@ use crate::vec3::{Color, Point3};
 use super::perlin::Perlin;
 
 pub trait Texture: Send + Sync {
-    fn value(&self, u: f64, v: f64, p: &Point3) -> Color;
+    fn value(&self, u: f32, v: f32, p: &Point3) -> Color;
 }
 
 pub struct SolidColor {
@@ -22,7 +22,7 @@ impl SolidColor {
 }
 
 impl Texture for SolidColor {
-    fn value(&self, _u: f64, _v: f64, _p: &Point3) -> Color {
+    fn value(&self, _u: f32, _v: f32, _p: &Point3) -> Color {
         self.color_value
     }
 }
@@ -46,8 +46,8 @@ impl Checker {
 }
 
 impl Texture for Checker {
-    fn value(&self, u: f64, v: f64, p: &Point3) -> Color {
-        let sines = (10. * p.x()).sin() * (10. * p.y()).sin() * (10. * p.z()).sin();
+    fn value(&self, u: f32, v: f32, p: &Point3) -> Color {
+        let sines = (10. * p[0]).sin() * (10. * p[1]).sin() * (10. * p[2]).sin();
 
         if sines < 0. {
             return self.odd.value(u, v, p);
@@ -58,11 +58,11 @@ impl Texture for Checker {
 
 pub struct Noise {
     noise: Perlin<256>,
-    scale: f64,
+    scale: f32,
 }
 
 impl Noise {
-    pub fn new(scale: f64) -> Noise {
+    pub fn new(scale: f32) -> Noise {
         Noise {
             noise: Perlin::new(),
             scale,
@@ -71,12 +71,12 @@ impl Noise {
 }
 
 impl Texture for Noise {
-    fn value(&self, _u: f64, _v: f64, p: &Point3) -> Color {
+    fn value(&self, _u: f32, _v: f32, p: &Point3) -> Color {
         // Color::new(1., 1., 1.) * 0.5 * (1. + self.noise.noise(self.scale * *p))
-        // Color::new(1., 1., 1.) * self.noise.turb(self.scale * *p, 4)
-        Color::new(1., 1., 1.)
-            * 0.5
-            * (1. + (self.scale * p.z() + 10. * self.noise.turb(*p, 7)).sin())
+        Color::new(1., 1., 1.) * self.noise.turb(self.scale * *p, 4)
+        // Color::new(1., 1., 1.)
+        //     * 0.5
+        //     * (1. + (self.scale * p[2] + 10. * self.noise.turb(*p, 7)).sin())
     }
 }
 
@@ -107,22 +107,22 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, u: f64, v: f64, _p: &Point3) -> Color {
+    fn value(&self, u: f32, v: f32, _p: &Point3) -> Color {
         if let Some(data) = &self.data {
             let cu = u.clamp(0., 1.);
             let cv = 1. - v.clamp(0., 1.);
 
-            let x = ((cu * self.width as f64) as u32).clamp(0, self.width - 1);
-            let y = ((cv * self.height as f64) as u32).clamp(0, self.height - 1);
+            let x = ((cu * self.width as f32) as u32).clamp(0, self.width - 1);
+            let y = ((cv * self.height as f32) as u32).clamp(0, self.height - 1);
 
             let color_scale = 1. / 255.;
 
             let pixel = data.get_pixel(x, y).channels();
 
             return Color::new(
-                color_scale * pixel[0] as f64,
-                color_scale * pixel[1] as f64,
-                color_scale * pixel[2] as f64,
+                color_scale * pixel[0] as f32,
+                color_scale * pixel[1] as f32,
+                color_scale * pixel[2] as f32,
             );
         }
         Color::new(1., 1., 0.)

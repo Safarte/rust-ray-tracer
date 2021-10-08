@@ -1,21 +1,22 @@
-use std::{f64::consts::PI, sync::Arc};
+use std::{f32::consts::PI, sync::Arc};
 
+use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
 use crate::{
     geometry::Hittable,
-    vec3::{OrthNormBasis, Point3, Vec3},
+    vec3::{unit, OrthNormBasis, Point3},
 };
 
 pub trait PDF {
-    fn value(&self, direction: Vec3) -> f64;
+    fn value(&self, direction: Vec3) -> f32;
     fn generate(&self) -> Vec3;
 }
 
 fn random_cosine_direction() -> Vec3 {
     let mut rng = thread_rng();
-    let r1: f64 = rng.gen();
-    let r2: f64 = rng.gen();
+    let r1: f32 = rng.gen();
+    let r2: f32 = rng.gen();
 
     let z = (1. - r2).sqrt();
     let phi = 2. * PI * r1;
@@ -39,13 +40,13 @@ impl CosinePDF {
 }
 
 impl PDF for CosinePDF {
-    fn value(&self, direction: Vec3) -> f64 {
-        let cosine = direction.unit_vector().dot(&self.uvw.w);
+    fn value(&self, direction: Vec3) -> f32 {
+        let cosine = unit(direction).dot(&self.uvw.w);
         (cosine / PI).max(0.)
     }
 
     fn generate(&self) -> Vec3 {
-        self.uvw.local(&random_cosine_direction())
+        self.uvw.local(random_cosine_direction())
     }
 }
 
@@ -61,7 +62,7 @@ impl HittablePDF {
 }
 
 impl PDF for HittablePDF {
-    fn value(&self, direction: Vec3) -> f64 {
+    fn value(&self, direction: Vec3) -> f32 {
         self.hittable.pdf_value(self.origin, direction)
     }
 
@@ -81,7 +82,7 @@ impl MixturePDF {
 }
 
 impl PDF for MixturePDF {
-    fn value(&self, direction: Vec3) -> f64 {
+    fn value(&self, direction: Vec3) -> f32 {
         0.5 * self.p[0].value(direction) + 0.5 * self.p[1].value(direction)
     }
 

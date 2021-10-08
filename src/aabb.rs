@@ -9,7 +9,7 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> bool {
+    pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> bool {
         for a in 0..3 {
             let inv_d = 1. / ray.direction()[a];
             let mut t0 = (self.min[a] - ray.origin()[a]) * inv_d;
@@ -32,15 +32,15 @@ impl AABB {
 
 pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
     let small = Point3::new(
-        box0.min.x().min(box1.min.x()),
-        box0.min.y().min(box1.min.y()),
-        box0.min.z().min(box1.min.z()),
+        box0.min[0].min(box1.min[0]),
+        box0.min[1].min(box1.min[1]),
+        box0.min[2].min(box1.min[2]),
     );
 
     let big = Point3::new(
-        box0.max.x().max(box1.max.x()),
-        box0.max.y().max(box1.max.y()),
-        box0.max.z().max(box1.max.z()),
+        box0.max[0].max(box1.max[0]),
+        box0.max[1].max(box1.max[1]),
+        box0.max[2].max(box1.max[2]),
     );
 
     AABB {

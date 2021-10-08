@@ -1,20 +1,22 @@
 use std::sync::Arc;
 
+use nalgebra_glm::Vec3;
+
 use crate::{
     geometry::Hittable,
     pdf::{HittablePDF, MixturePDF, PDF},
-    vec3::{Color, Point3, Vec3},
+    vec3::{mul, Color, Point3},
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
     origin: Point3,
     direction: Vec3,
-    time: f64,
+    time: f32,
 }
 
 impl Ray {
-    pub fn new(origin: Point3, direction: Vec3, time: f64) -> Ray {
+    pub fn new(origin: Point3, direction: Vec3, time: f32) -> Ray {
         Ray {
             origin,
             direction,
@@ -30,11 +32,11 @@ impl Ray {
         self.direction
     }
 
-    pub fn time(&self) -> f64 {
+    pub fn time(&self) -> f32 {
         self.time
     }
 
-    pub fn at(&self, t: f64) -> Point3 {
+    pub fn at(&self, t: f32) -> Point3 {
         self.origin + t * self.direction
     }
 }
@@ -50,13 +52,15 @@ pub fn ray_color(
         return Color::new(0., 0., 0.);
     }
 
-    if let Some(rec) = world.hit(ray, 0.0001, f64::INFINITY) {
+    if let Some(rec) = world.hit(ray, 0.0001, f32::INFINITY) {
         let emitted = rec.mat.emitted(ray, &rec, rec.u, rec.v, &rec.p);
 
         if let Some(scatter) = rec.mat.scatter(ray, &rec) {
             if let Some(scattered) = scatter.specular_ray {
-                return scatter.attenuation
-                    * ray_color(&scattered, background, world, lights, depth - 1);
+                return mul(
+                    scatter.attenuation,
+                    ray_color(&scattered, background, world, lights, depth - 1),
+                );
             }
             let mut scattered = Ray::new(rec.p, rec.normal, 0.);
             let mut pdf_val = 1.;
@@ -70,11 +74,12 @@ pub fn ray_color(
             }
 
             return emitted
-                + scatter.attenuation
-                    * rec.mat.scattering_pdf(ray, &rec, &scattered)
-                    * ray_color(&scattered, background, world, lights.clone(), depth - 1)
+                + rec.mat.scattering_pdf(ray, &rec, &scattered)
+                    * mul(
+                        scatter.attenuation,
+                        ray_color(&scattered, background, world, lights.clone(), depth - 1),
+                    )
                     / pdf_val;
-            // }
         }
         return emitted;
     }

@@ -23,53 +23,53 @@ impl Cuboid {
         let mut sides: Hittables = Vec::new();
 
         sides.push(Arc::new(XYRect::new(
-            min.x(),
-            max.x(),
-            min.y(),
-            max.y(),
-            max.z(),
+            min[0],
+            max[0],
+            min[1],
+            max[1],
+            max[2],
             mat.clone(),
         )));
         sides.push(Arc::new(XYRect::new(
-            min.x(),
-            max.x(),
-            min.y(),
-            max.y(),
-            min.z(),
+            min[0],
+            max[0],
+            min[1],
+            max[1],
+            min[2],
             mat.clone(),
         )));
 
         sides.push(Arc::new(XZRect::new(
-            min.x(),
-            max.x(),
-            min.z(),
-            max.z(),
-            max.y(),
+            min[0],
+            max[0],
+            min[2],
+            max[2],
+            max[1],
             mat.clone(),
         )));
         sides.push(Arc::new(XZRect::new(
-            min.x(),
-            max.x(),
-            min.z(),
-            max.z(),
-            min.y(),
+            min[0],
+            max[0],
+            min[2],
+            max[2],
+            min[1],
             mat.clone(),
         )));
 
         sides.push(Arc::new(YZRect::new(
-            min.y(),
-            max.y(),
-            min.z(),
-            max.z(),
-            max.x(),
+            min[1],
+            max[1],
+            min[2],
+            max[2],
+            max[0],
             mat.clone(),
         )));
         sides.push(Arc::new(YZRect::new(
-            min.y(),
-            max.y(),
-            min.z(),
-            max.z(),
-            min.x(),
+            min[1],
+            max[1],
+            min[2],
+            max[2],
+            min[0],
             mat.clone(),
         )));
 
@@ -78,11 +78,11 @@ impl Cuboid {
 }
 
 impl Hittable for Cuboid {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         self.sides.hit(ray, t_min, t_max)
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         Some(AABB {
             min: self.min,
             max: self.max,

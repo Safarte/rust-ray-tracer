@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
-use crate::{
-    aabb::AABB,
-    material::HitRecord,
-    ray::Ray,
-    vec3::{Point3, Vec3},
-};
+use nalgebra_glm::Vec3;
+
+use crate::{aabb::AABB, material::HitRecord, ray::Ray, vec3::Point3};
 
 use super::Hittable;
 
@@ -21,7 +18,7 @@ impl Translate {
 }
 
 impl Hittable for Translate {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let moved = Ray::new(ray.origin() - self.offset, ray.direction(), ray.time());
 
         if let Some(mut rec) = self.base.hit(&moved, t_min, t_max) {
@@ -31,7 +28,7 @@ impl Hittable for Translate {
         None
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         if let Some(bbox) = self.base.bounding_box(time0, time1) {
             return Some(AABB {
                 min: bbox.min + self.offset,
@@ -44,27 +41,27 @@ impl Hittable for Translate {
 
 pub struct RotateY {
     base: Arc<dyn Hittable>,
-    sin_theta: f64,
-    cos_theta: f64,
+    sin_theta: f32,
+    cos_theta: f32,
     bbox: Option<AABB>,
 }
 
 impl RotateY {
-    pub fn new(base: Arc<dyn Hittable>, angle: f64) -> RotateY {
+    pub fn new(base: Arc<dyn Hittable>, angle: f32) -> RotateY {
         let radians = angle.to_radians();
         let sin_theta = radians.sin();
         let cos_theta = radians.cos();
 
         if let Some(bbox) = base.bounding_box(0., 1.) {
-            let mut min = Point3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY);
-            let mut max = Point3::new(-f64::INFINITY, -f64::INFINITY, -f64::INFINITY);
+            let mut min = Point3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+            let mut max = Point3::new(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY);
 
             for i in 0..2 {
                 for j in 0..2 {
                     for k in 0..2 {
-                        let x = (i as f64) * bbox.max.x() + (i as f64 - 1.) * bbox.min.x();
-                        let y = (j as f64) * bbox.max.y() + (j as f64 - 1.) * bbox.min.y();
-                        let z = (k as f64) * bbox.max.z() + (k as f64 - 1.) * bbox.min.z();
+                        let x = (i as f32) * bbox.max[0] + (i as f32 - 1.) * bbox.min[0];
+                        let y = (j as f32) * bbox.max[1] + (j as f32 - 1.) * bbox.min[1];
+                        let z = (k as f32) * bbox.max[2] + (k as f32 - 1.) * bbox.min[2];
 
                         let newx = cos_theta * x + sin_theta * z;
                         let newz = -sin_theta * x + cos_theta * z;
@@ -72,8 +69,8 @@ impl RotateY {
                         let tester = Vec3::new(newx, y, newz);
 
                         for c in 0..3 {
-                            min.e[c] = min[c].min(tester[c]);
-                            max.e[c] = max[c].max(tester[c]);
+                            min[c] = min[c].min(tester[c]);
+                            max[c] = max[c].max(tester[c]);
                         }
                     }
                 }
@@ -96,17 +93,15 @@ impl RotateY {
 }
 
 impl Hittable for RotateY {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut origin = ray.origin();
         let mut direction = ray.direction();
 
-        origin.e[0] = self.cos_theta * ray.origin().x() - self.sin_theta * ray.origin().z();
-        origin.e[2] = self.sin_theta * ray.origin().x() + self.cos_theta * ray.origin().z();
+        origin[0] = self.cos_theta * ray.origin()[0] - self.sin_theta * ray.origin()[2];
+        origin[2] = self.sin_theta * ray.origin()[0] + self.cos_theta * ray.origin()[2];
 
-        direction.e[0] =
-            self.cos_theta * ray.direction().x() - self.sin_theta * ray.direction().z();
-        direction.e[2] =
-            self.sin_theta * ray.direction().x() + self.cos_theta * ray.direction().z();
+        direction[0] = self.cos_theta * ray.direction()[0] - self.sin_theta * ray.direction()[2];
+        direction[2] = self.sin_theta * ray.direction()[0] + self.cos_theta * ray.direction()[2];
 
         let rotated = Ray::new(origin, direction, ray.time());
 
@@ -114,11 +109,11 @@ impl Hittable for RotateY {
             let mut p = rec.p;
             let mut normal = rec.normal;
 
-            p.e[0] = self.cos_theta * rec.p.x() + self.sin_theta * rec.p.z();
-            p.e[2] = -self.sin_theta * rec.p.x() + self.cos_theta * rec.p.z();
+            p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
+            p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
 
-            normal.e[0] = self.cos_theta * rec.normal.x() + self.sin_theta * rec.normal.z();
-            normal.e[2] = -self.sin_theta * rec.normal.x() + self.cos_theta * rec.normal.z();
+            normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
+            normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
 
             let mut new_rec = rec;
             new_rec.p = p;
@@ -130,7 +125,7 @@ impl Hittable for RotateY {
         None
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         self.bbox
     }
 }

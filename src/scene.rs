@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -10,6 +11,7 @@ use crate::{
         cuboid::Cuboid,
         sphere::{MovingSphere, Sphere},
         transform::{RotateY, Translate},
+        triangle::Triangle,
         BVHNode, FlipFace, Hittable, Hittables,
     },
     material::{
@@ -17,7 +19,7 @@ use crate::{
         DiffuseLight,
     },
     material::{Dielectric, Lambertian, Metal},
-    vec3::{Color, Point3, Vec3},
+    vec3::{random_vector, Color, Point3},
 };
 
 fn random_scene() -> Hittables {
@@ -36,19 +38,18 @@ fn random_scene() -> Hittables {
 
     for a in -5..5 {
         for b in -5..5 {
-            let choose_mat: f64 = rng.gen();
+            let choose_mat: f32 = rng.gen();
             let center = Point3::new(
-                a as f64 + 0.9 * rng.gen::<f64>(),
+                a as f32 + 0.9 * rng.gen::<f32>(),
                 0.2,
-                b as f64 + 0.9 * rng.gen::<f64>(),
+                b as f32 + 0.9 * rng.gen::<f32>(),
             );
 
-            if (center - comp).length() > 0.9 {
+            if (center - comp).norm() > 0.9 {
                 if choose_mat < 0.8 {
-                    let albedo = Vec3::random_range(0., 1.);
-                    let material =
-                        Arc::new(Lambertian::from_rgb(albedo.x(), albedo.y(), albedo.z()));
-                    let center1 = center + Vec3::new(0., rng.gen_range((0.)..0.5), 0.);
+                    let albedo: Color = random_vector(0., 1.);
+                    let material = Arc::new(Lambertian::from_rgb(albedo[0], albedo[1], albedo[2]));
+                    let center1: Point3 = center + Vec3::new(0., rng.gen_range((0.)..0.5), 0.);
                     world.push(Arc::new(MovingSphere {
                         center0: center,
                         center1,
@@ -58,8 +59,8 @@ fn random_scene() -> Hittables {
                         material,
                     }))
                 } else if choose_mat < 0.95 {
-                    let albedo = Vec3::random_range(0.5, 1.);
-                    let fuzziness: f64 = rng.gen_range((0.)..0.5);
+                    let albedo = random_vector(0., 1.);
+                    let fuzziness: f32 = rng.gen_range((0.)..0.5);
                     let material = Arc::new(Metal { albedo, fuzziness });
                     world.push(Arc::new(Sphere {
                         center,
@@ -204,9 +205,9 @@ fn cornell_box() -> Hittables {
     let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
     let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
     let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
-    let red_light = Arc::new(DiffuseLight::from_color(Color::new(30., 0., 0.)));
-    let green_light = Arc::new(DiffuseLight::from_color(Color::new(0., 30., 0.)));
-    let blue_light = Arc::new(DiffuseLight::from_color(Color::new(0., 0., 30.)));
+    let red_light = Arc::new(DiffuseLight::from_color(Color::new(15., 0., 0.)));
+    let green_light = Arc::new(DiffuseLight::from_color(Color::new(0., 15., 0.)));
+    let blue_light = Arc::new(DiffuseLight::from_color(Color::new(0., 0., 15.)));
 
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 555., green)));
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 0., red)));
@@ -268,17 +269,17 @@ fn cornell_box() -> Hittables {
     world
 }
 
-fn cornell_smoke() -> Hittables {
+fn cornell_triangle() -> Hittables {
     let mut world: Hittables = Vec::new();
 
     let red = Arc::new(Lambertian::from_rgb(0.65, 0.05, 0.05));
     let green = Arc::new(Lambertian::from_rgb(0.12, 0.45, 0.15));
     let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
-    let light = Arc::new(DiffuseLight::from_color(Color::new(7., 7., 7.)));
+    let light = Arc::new(DiffuseLight::from_color(Color::new(15., 15., 15.)));
 
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 555., green)));
     world.push(Arc::new(YZRect::new(0., 555., 0., 555., 0., red)));
-    world.push(Arc::new(XZRect::new(113., 443., 127., 432., 554., light)));
+    world.push(Arc::new(XZRect::new(213., 343., 227., 332., 554., light)));
     world.push(Arc::new(XZRect::new(0., 555., 0., 555., 0., white.clone())));
     world.push(Arc::new(XZRect::new(
         0.,
@@ -297,30 +298,16 @@ fn cornell_smoke() -> Hittables {
         white.clone(),
     )));
 
-    let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
-        Point3::new(0., 0., 0.),
-        Point3::new(165., 330., 165.),
-        white.clone(),
-    ));
-    box1 = Arc::new(RotateY::new(box1.clone(), 15.));
-    box1 = Arc::new(Translate::new(box1.clone(), Vec3::new(265., 0., 295.)));
-    world.push(Arc::new(ConstantMedium::from_color(
-        box1,
-        0.01,
-        Color::new(0., 0., 0.),
-    )));
-
-    let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
-        Point3::new(0., 0., 0.),
-        Point3::new(165., 165., 165.),
-        white.clone(),
-    ));
-    box2 = Arc::new(RotateY::new(box2.clone(), -18.));
-    box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
-    world.push(Arc::new(ConstantMedium::from_color(
-        box2,
-        0.01,
-        Color::new(1., 1., 1.),
+    // let aluminum = Arc::new(Metal {
+    //     albedo: Color::new(0.8, 0.85, 0.88),
+    //     fuzziness: 0.,
+    // });
+    let pertex = Arc::new(Lambertian::new(Arc::new(Noise::new(0.07))));
+    world.push(Arc::new(Triangle::new(
+        Point3::new(165., 20., 165.),
+        Point3::new(165., 165., 250.),
+        Point3::new(300., 250., 250.),
+        pertex,
     )));
 
     world
@@ -339,11 +326,11 @@ fn final_scene() -> Hittables {
     for i in 0..boxes_per_side {
         for j in 0..boxes_per_side {
             let w = 100.;
-            let x0 = -1000. + (i as f64) * w;
-            let z0 = -1000. + (j as f64) * w;
+            let x0 = -1000. + (i as f32) * w;
+            let z0 = -1000. + (j as f32) * w;
             let y0 = 0.;
             let x1 = x0 + w;
-            let y1: f64 = rng.gen_range((1.)..(101.));
+            let y1: f32 = rng.gen_range((1.)..(101.));
             let z1 = z0 + w;
 
             boxes1.push(Arc::new(Cuboid::new(
@@ -432,7 +419,7 @@ fn final_scene() -> Hittables {
     let ns = 10;
     for _j in 0..ns {
         boxes2.push(Arc::new(Sphere {
-            center: Point3::random_range(0., 165.),
+            center: random_vector(0., 165.),
             radius: 10.,
             material: white.clone(),
         }));
@@ -454,11 +441,11 @@ pub enum SceneType {
     Earth,
     RectLight,
     CornellBox,
-    CornellSmoke,
+    CornellTriangle,
     FinalScene,
 }
 
-pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>, Camera, Color) {
+pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> (Arc<dyn Hittable>, Camera, Color) {
     let vup = Vec3::new(0., 1., 0.);
     let dist_to_focus = 10.;
 
@@ -601,8 +588,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f64) -> (Arc<dyn Hittable>
                 Color::new(0., 0., 0.),
             );
         }
-        SceneType::CornellSmoke => {
-            let scene = cornell_smoke();
+        SceneType::CornellTriangle => {
+            let scene = cornell_triangle();
             let lookfrom = Point3::new(278., 278., -800.);
             let lookat = Point3::new(278., 278., 0.);
             let vfov = 40.;

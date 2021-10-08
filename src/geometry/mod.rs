@@ -3,23 +3,25 @@ pub mod constant_medium;
 pub mod cuboid;
 pub mod sphere;
 pub mod transform;
+pub mod triangle;
 
 use std::cmp::Ordering;
 use std::sync::Arc;
 
+use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::vec3::{Point3, Vec3};
+use crate::vec3::Point3;
 use crate::{material::HitRecord, ray::Ray};
 
 pub type Hittables = Vec<Arc<dyn Hittable>>;
 
 #[allow(unused)]
 pub trait Hittable: Send + Sync {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB>;
-    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
         0.
     }
     fn random(&self, origin: Point3) -> Vec3 {
@@ -28,7 +30,7 @@ pub trait Hittable: Send + Sync {
 }
 
 impl Hittable for Hittables {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         let mut hit: Option<HitRecord> = None;
         for hittable in self.iter() {
             if let Some(next_hit) = hittable.hit(ray, t_min, t_max) {
@@ -45,14 +47,14 @@ impl Hittable for Hittables {
         hit
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         if self.is_empty() {
             return None;
         }
 
         let mut out = AABB {
-            min: Point3::zero(),
-            max: Point3::zero(),
+            min: Point3::new(0., 0., 0.),
+            max: Point3::new(0., 0., 0.),
         };
         let mut first_box = true;
 
@@ -72,8 +74,8 @@ impl Hittable for Hittables {
         Some(out)
     }
 
-    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
-        let weight = 1. / self.len() as f64;
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
+        let weight = 1. / self.len() as f32;
         let mut sum = 0.;
 
         for object in self.iter() {
@@ -96,7 +98,7 @@ pub struct BVHNode {
 }
 
 impl Hittable for BVHNode {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if !self.bbox.hit(ray, t_min, t_max) {
             return None;
         }
@@ -117,13 +119,13 @@ impl Hittable for BVHNode {
         None
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         Some(self.bbox)
     }
 }
 
 impl BVHNode {
-    pub fn new(src_objects: Hittables, time0: f64, time1: f64) -> Arc<dyn Hittable> {
+    pub fn new(src_objects: Hittables, time0: f32, time1: f32) -> Arc<dyn Hittable> {
         let mut objects = src_objects;
         let left: Arc<dyn Hittable>;
         let right: Arc<dyn Hittable>;
@@ -172,7 +174,7 @@ fn random_int(min: i32, max: i32) -> usize {
 fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize) -> Ordering {
     if let Some(box_a) = a.bounding_box(0., 0.) {
         if let Some(box_b) = b.bounding_box(0., 0.) {
-            return box_a.min.e[axis].partial_cmp(&box_b.min.e[axis]).unwrap();
+            return box_a.min[axis].partial_cmp(&box_b.min[axis]).unwrap();
         }
     }
     Ordering::Equal
@@ -183,20 +185,20 @@ pub struct FlipFace {
 }
 
 impl Hittable for FlipFace {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if let Some(rec) = self.hittable.hit(ray, t_min, t_max) {
             let mut new_rec = rec;
             new_rec.normal = Vec3::new(
-                new_rec.normal.x(),
-                -new_rec.normal.y().abs(),
-                new_rec.normal.z(),
+                new_rec.normal[0],
+                -new_rec.normal[1].abs(),
+                new_rec.normal[2],
             );
             return Some(new_rec);
         }
         None
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB> {
         self.hittable.bounding_box(time0, time1)
     }
 }

@@ -1,27 +1,28 @@
-use std::{f64::INFINITY, sync::Arc};
+use std::{f32::INFINITY, sync::Arc};
 
+use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
 use crate::{
     aabb::AABB,
     material::{HitRecord, Material},
     ray::Ray,
-    vec3::{Point3, Vec3},
+    vec3::Point3,
 };
 
 use super::Hittable;
 
 pub struct XYRect {
     pub material: Arc<dyn Material>,
-    pub x0: f64,
-    pub x1: f64,
-    pub y0: f64,
-    pub y1: f64,
-    pub k: f64,
+    pub x0: f32,
+    pub x1: f32,
+    pub y0: f32,
+    pub y1: f32,
+    pub k: f32,
 }
 
 impl XYRect {
-    pub fn new(x0: f64, x1: f64, y0: f64, y1: f64, k: f64, mat: Arc<dyn Material>) -> XYRect {
+    pub fn new(x0: f32, x1: f32, y0: f32, y1: f32, k: f32, mat: Arc<dyn Material>) -> XYRect {
         XYRect {
             material: mat,
             x0,
@@ -34,17 +35,17 @@ impl XYRect {
 }
 
 impl Hittable for XYRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let t = (self.k - ray.origin().z()) / ray.direction().z();
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let t = (self.k - ray.origin()[2]) / ray.direction()[2];
 
         if t >= t_min && t <= t_max {
-            let x = ray.origin().x() + t * ray.direction().x();
-            let y = ray.origin().y() + t * ray.direction().y();
+            let x = ray.origin()[0] + t * ray.direction()[0];
+            let y = ray.origin()[1] + t * ray.direction()[1];
 
             if x >= self.x0 && x <= self.x1 && y >= self.y0 && y <= self.y1 {
                 return Some(HitRecord {
                     p: ray.at(t),
-                    normal: Vec3::new(0., 0., (ray.origin().z() - self.k).signum()),
+                    normal: Vec3::new(0., 0., (ray.origin()[2] - self.k).signum()),
                     t,
                     mat: self.material.clone(),
                     u: (x - self.x0) / (self.x1 - self.x0),
@@ -55,7 +56,7 @@ impl Hittable for XYRect {
         None
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         // Added padding for non-zero width AABB
         Some(AABB {
             min: Point3::new(self.x0, self.y0, self.k - 0.0001),
@@ -66,15 +67,15 @@ impl Hittable for XYRect {
 
 pub struct XZRect {
     pub material: Arc<dyn Material>,
-    pub x0: f64,
-    pub x1: f64,
-    pub z0: f64,
-    pub z1: f64,
-    pub k: f64,
+    pub x0: f32,
+    pub x1: f32,
+    pub z0: f32,
+    pub z1: f32,
+    pub k: f32,
 }
 
 impl XZRect {
-    pub fn new(x0: f64, x1: f64, z0: f64, z1: f64, k: f64, mat: Arc<dyn Material>) -> XZRect {
+    pub fn new(x0: f32, x1: f32, z0: f32, z1: f32, k: f32, mat: Arc<dyn Material>) -> XZRect {
         XZRect {
             material: mat,
             x0,
@@ -87,17 +88,17 @@ impl XZRect {
 }
 
 impl Hittable for XZRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let t = (self.k - ray.origin().y()) / ray.direction().y();
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let t = (self.k - ray.origin()[1]) / ray.direction()[1];
 
         if t >= t_min && t <= t_max {
-            let x = ray.origin().x() + t * ray.direction().x();
-            let z = ray.origin().z() + t * ray.direction().z();
+            let x = ray.origin()[0] + t * ray.direction()[0];
+            let z = ray.origin()[2] + t * ray.direction()[2];
 
             if x >= self.x0 && x <= self.x1 && z >= self.z0 && z <= self.z1 {
                 return Some(HitRecord {
                     p: ray.at(t),
-                    normal: Vec3::new(0., (ray.origin().y() - self.k).signum(), 0.),
+                    normal: Vec3::new(0., (ray.origin()[1] - self.k).signum(), 0.),
                     t,
                     mat: self.material.clone(),
                     u: (x - self.x0) / (self.x1 - self.x0),
@@ -108,7 +109,7 @@ impl Hittable for XZRect {
         None
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         // Added padding for non-zero width AABB
         Some(AABB {
             min: Point3::new(self.x0, self.k - 0.0001, self.z0),
@@ -116,11 +117,11 @@ impl Hittable for XZRect {
         })
     }
 
-    fn pdf_value(&self, origin: Point3, v: Vec3) -> f64 {
+    fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
         if let Some(rec) = self.hit(&Ray::new(origin, v, 0.), 0.001, INFINITY) {
             let area = (self.x1 - self.x0) * (self.z1 - self.z0);
-            let dist_squared = rec.t * rec.t * v.length_squared();
-            let cosine = v.dot(&rec.normal).abs() / v.length();
+            let dist_squared = rec.t * rec.t * v.norm_squared();
+            let cosine = v.dot(&rec.normal).abs() / v.norm();
 
             return dist_squared / (cosine * area);
         }
@@ -140,15 +141,15 @@ impl Hittable for XZRect {
 
 pub struct YZRect {
     pub material: Arc<dyn Material>,
-    pub y0: f64,
-    pub y1: f64,
-    pub z0: f64,
-    pub z1: f64,
-    pub k: f64,
+    pub y0: f32,
+    pub y1: f32,
+    pub z0: f32,
+    pub z1: f32,
+    pub k: f32,
 }
 
 impl YZRect {
-    pub fn new(y0: f64, y1: f64, z0: f64, z1: f64, k: f64, mat: Arc<dyn Material>) -> YZRect {
+    pub fn new(y0: f32, y1: f32, z0: f32, z1: f32, k: f32, mat: Arc<dyn Material>) -> YZRect {
         YZRect {
             material: mat,
             y0,
@@ -161,17 +162,17 @@ impl YZRect {
 }
 
 impl Hittable for YZRect {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let t = (self.k - ray.origin().x()) / ray.direction().x();
+    fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        let t = (self.k - ray.origin()[0]) / ray.direction()[0];
 
         if t >= t_min && t <= t_max {
-            let y = ray.origin().y() + t * ray.direction().y();
-            let z = ray.origin().z() + t * ray.direction().z();
+            let y = ray.origin()[1] + t * ray.direction()[1];
+            let z = ray.origin()[2] + t * ray.direction()[2];
 
             if y >= self.y0 && y <= self.y1 && z >= self.z0 && z <= self.z1 {
                 return Some(HitRecord {
                     p: ray.at(t),
-                    normal: Vec3::new((ray.origin().x() - self.k).signum(), 0., 0.),
+                    normal: Vec3::new((ray.origin()[0] - self.k).signum(), 0., 0.),
                     t,
                     mat: self.material.clone(),
                     u: (y - self.y0) / (self.y1 - self.y0),
@@ -182,7 +183,7 @@ impl Hittable for YZRect {
         None
     }
 
-    fn bounding_box(&self, _time0: f64, _time1: f64) -> Option<AABB> {
+    fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
         // Added padding for non-zero width AABB
         Some(AABB {
             min: Point3::new(self.k - 0.0001, self.y0, self.z0),
