@@ -17,6 +17,7 @@ pub struct Camera {
     lens_radius: f32,
     time0: f32,
     time1: f32,
+    pub aspect_ratio: f32,
 }
 
 impl Camera {
@@ -59,6 +60,7 @@ impl Camera {
             lens_radius,
             time0,
             time1,
+            aspect_ratio,
         }
     }
 

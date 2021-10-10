@@ -3,8 +3,8 @@ use std::sync::Arc;
 use nalgebra_glm::Vec3;
 
 use crate::{
-    geometry::Hittable,
-    pdf::{HittablePDF, MixturePDF, PDF},
+    geometry::{Hittable, Hittables},
+    pdf::{HittablePDF, MixturePDF},
     vec3::{mul, Color, Point3},
 };
 
@@ -45,7 +45,7 @@ pub fn ray_color(
     ray: &Ray,
     background: &Color,
     world: Arc<dyn Hittable>,
-    lights: Arc<dyn Hittable>,
+    lights: Hittables,
     depth: u32,
 ) -> Color {
     if depth <= 0 {
@@ -65,13 +65,17 @@ pub fn ray_color(
             let mut scattered = Ray::new(rec.p, rec.normal, 0.);
             let mut pdf_val = 1.;
 
-            if let Some(pdf) = scatter.pdf {
-                let light = Arc::new(HittablePDF::new(rec.p, lights.clone()));
-                let p = MixturePDF::new([pdf, light]);
+            if let Some(mut pdf) = scatter.pdf {
+                if lights.len() > 0 {
+                    let light = Arc::new(HittablePDF::new(rec.p, Arc::new(lights.clone())));
+                    pdf = Arc::new(MixturePDF::new([pdf, light]));
+                }
 
-                scattered = Ray::new(rec.p, p.generate(), ray.time());
-                pdf_val = p.value(scattered.direction());
+                scattered = Ray::new(rec.p, pdf.generate(), ray.time());
+                pdf_val = pdf.value(scattered.direction());
             }
+
+            pdf_val = pdf_val.max(1e-5);
 
             return emitted
                 + rec.mat.scattering_pdf(ray, &rec, &scattered)

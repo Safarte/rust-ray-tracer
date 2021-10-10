@@ -53,6 +53,12 @@ impl Lambertian {
         }
     }
 
+    pub fn from_color(c: Color) -> Lambertian {
+        Lambertian {
+            albedo: Arc::new(SolidColor::new(c)),
+        }
+    }
+
     pub fn from_rgb(r: f32, g: f32, b: f32) -> Lambertian {
         Lambertian {
             albedo: Arc::new(SolidColor::new(Color::new(r, g, b))),

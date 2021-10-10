@@ -1,6 +1,7 @@
 mod aabb;
 mod camera;
 mod geometry;
+mod gltf;
 mod material;
 mod pdf;
 mod ray;
@@ -11,18 +12,12 @@ use clap::App;
 use image::{ImageBuffer, RgbImage};
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::{prelude::*, ThreadPoolBuilder};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use rand::{thread_rng, Rng};
 use vec3::Color;
 
-use crate::{
-    geometry::{aarect::XZRect, Hittable, Hittables},
-    material::DiffuseLight,
-    ray::ray_color,
-    scene::{get_scene, SceneType},
-    vec3::get_color,
-};
+use crate::{ray::ray_color, scene::Scene, vec3::get_color};
 
 fn main() {
     // CLI args parsing
@@ -33,7 +28,8 @@ fn main() {
         .args_from_usage(
             "-t, --threads=[NUM_THREADS] 'Sets the desired number of threads'
             -o, --output=[FILE]          'Sets the output image file name'
-            <WIDTH>                      'Sets the image width'
+            -g --gltf=[FILE]             'Sets the input glTF scene file'
+            -a --aspect_ratio=[FILE]     'Sets the camera aspect ratio'
             <HEIGHT>                     'Sets the image height'
             <SAMPLES>                    'Sets the number of samples per pixel'",
         )
@@ -49,56 +45,29 @@ fn main() {
     }
 
     // Configuration
+    let gltf_file = matches.value_of("gltf").unwrap_or("assets/default.gltf");
     let output_file = matches.value_of("output").unwrap_or("output.png");
-    let width: u32 = matches.value_of("WIDTH").unwrap().parse().unwrap();
     let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
-    let aspect_ratio = (width as f32) / (height as f32);
     let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
-    const MAX_DEPTH: u32 = 50;
+    const MAX_DEPTH: u32 = 12;
 
     // Progress bar
     let bar = ProgressBar::new(height.into());
     bar.set_style(
         ProgressStyle::default_bar()
-            .template("{percent}% {bar:80.cyan/blue} [Elapsed: {elapsed_precise} | Remaining: {eta_precise}]")
-            .progress_chars("##-"),
+        .template("{percent}% {bar:80.cyan/blue} [Elapsed: {elapsed_precise} | Remaining: {eta_precise}]")
+        .progress_chars("##-"),
     );
 
     // Scene
-    let (world, camera, background) = get_scene(SceneType::CornellTriangle, aspect_ratio);
-
-    let light = Arc::new(DiffuseLight::from_color(Color::new(15., 15., 15.)));
-    let mut light_objects: Hittables = Vec::new();
-    // light_objects.push(Arc::new(XZRect::new(
-    //     13.,
-    //     143.,
-    //     227.,
-    //     332.,
-    //     554.,
-    //     light.clone(),
-    // )));
-    light_objects.push(Arc::new(XZRect::new(
-        213.,
-        343.,
-        227.,
-        332.,
-        554.,
-        light.clone(),
-    )));
-    // light_objects.push(Arc::new(XZRect::new(
-    //     413.,
-    //     543.,
-    //     227.,
-    //     332.,
-    //     554.,
-    //     light.clone(),
-    // )));
-    // light_objects.push(Arc::new(Sphere {
-    //     center: Point3::new(190., 90., 190.),
-    //     radius: 90.,
-    //     material: light.clone(),
-    // }));
-    let lights: Arc<dyn Hittable> = Arc::new(light_objects);
+    let scene = Scene::from_gltf_file(gltf_file).unwrap();
+    let aspect_ratio: f32 = matches
+        .value_of("aspect_ratio")
+        .unwrap_or(&scene.camera.aspect_ratio.to_string())
+        .parse()
+        .unwrap();
+    let width = ((height as f32) * aspect_ratio) as u32;
+    // let scene = Arc::new(get_scene(SceneType::Random, aspect_ratio));
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
@@ -111,8 +80,14 @@ fn main() {
             for _ in 0..samples {
                 let u = (x as f32 + rng.gen::<f32>()) / (width as f32 - 1.);
                 let v = (y as f32 + rng.gen::<f32>()) / (height as f32 - 1.);
-                let ray = camera.get_ray(u, v);
-                color += ray_color(&ray, &background, world.clone(), lights.clone(), MAX_DEPTH);
+                let ray = scene.camera.get_ray(u, v);
+                color += ray_color(
+                    &ray,
+                    &scene.background,
+                    scene.world.clone(),
+                    scene.lights.clone(),
+                    MAX_DEPTH,
+                );
             }
 
             let pixel = get_color(color, samples);

@@ -94,7 +94,7 @@ impl Hittable for Sphere {
     }
 
     fn random(&self, origin: Point3) -> Vec3 {
-        let direction = self.center - origin;
+        let direction: Vec3 = self.center - origin;
         let dist_squared = direction.norm_squared();
         let uvw = OrthNormBasis::from_w(direction);
         uvw.local(random_to_sphere(self.radius, dist_squared))

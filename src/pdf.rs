@@ -13,6 +13,7 @@ pub trait PDF {
     fn generate(&self) -> Vec3;
 }
 
+#[inline]
 fn random_cosine_direction() -> Vec3 {
     let mut rng = thread_rng();
     let r1: f32 = rng.gen();

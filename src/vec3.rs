@@ -36,9 +36,18 @@ pub fn get_color(color: Color, samples: u32) -> Rgb<u8> {
     let scale = 1. / (samples as f32);
 
     // Gamma-corrected color with gamma=2.0
-    let r = (color[0] * scale).sqrt();
-    let g = (color[1] * scale).sqrt();
-    let b = (color[2] * scale).sqrt();
+    let r = match color[0].is_nan() {
+        true => 0.,
+        false => (color[0] * scale).sqrt(),
+    };
+    let g = match color[1].is_nan() {
+        true => 0.,
+        false => (color[1] * scale).sqrt(),
+    };
+    let b = match color[2].is_nan() {
+        true => 0.,
+        false => (color[2] * scale).sqrt(),
+    };
 
     Rgb([
         (256. * r.clamp(0., 0.999)) as u8,
