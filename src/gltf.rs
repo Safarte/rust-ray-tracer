@@ -221,10 +221,10 @@ fn gltf_accessors_to_data(
 }
 
 fn gltf_camera_to_camera(camera: &GLTFCamera) -> Camera {
-    let lookfrom: Point3 = Point3::new(7., 5., 7.);
+    let lookfrom: Point3 = Point3::new(1., 1., 7.);
     let lookat: Point3 = Point3::new(0., 0., 0.);
     let vup: Vec3 = Vec3::new(0., 1., 0.);
-    let aperture = 0.1;
+    let aperture = 0.;
 
     Camera::new(
         lookfrom,
@@ -289,17 +289,17 @@ impl Scene {
         let camera = gltf_camera_to_camera(&gltf.cameras[0]);
         let mut objects = gltf_meshes_to_hittables(&gltf.meshes, &accessors, &materials);
         let light = Arc::new(Sphere {
-            center: Point3::new(4., 6., -1.),
+            center: Point3::new(2., 6., 3.),
             radius: 0.15,
             material: Arc::new(DiffuseLight::from_color(Color::new(1000., 1000., 1000.))),
         });
         let mut lights: Hittables = Vec::new();
         lights.push(light.clone());
         objects.push(light.clone());
-        // let world = BVHNode::new(objects, 0., 1.);
+        let world = BVHNode::new(objects, 0., 1.);
 
         Ok(Scene {
-            world: Arc::new(objects),
+            world,
             camera,
             background: Color::new(0.051, 0.051, 0.051),
             lights,
