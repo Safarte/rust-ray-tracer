@@ -1,5 +1,5 @@
 [package]
-name = "ray-tracing-one-weekend"
+name = "rust-ray-tracer"
 version = "0.1.0"
 authors = ["safarte <bchichereau@gmail.com>"]
 edition = "2018"
