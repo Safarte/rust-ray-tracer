@@ -48,7 +48,7 @@ pub fn ray_color(
     lights: Hittables,
     depth: u32,
 ) -> Color {
-    if depth <= 0 {
+    if depth == 0 {
         return Color::new(0., 0., 0.);
     }
 
@@ -66,7 +66,7 @@ pub fn ray_color(
             let mut pdf_val = 1.;
 
             if let Some(mut pdf) = scatter.pdf {
-                if lights.len() > 0 {
+                if !lights.is_empty() {
                     let light = Arc::new(HittablePDF::new(rec.p, Arc::new(lights.clone())));
                     pdf = Arc::new(MixturePDF::new([pdf, light]));
                 }

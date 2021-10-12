@@ -84,7 +84,10 @@ impl Hittable for Sphere {
     }
 
     fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
-        if let None = self.hit(&Ray::new(origin, v, 0.), 0.0001, INFINITY) {
+        if self
+            .hit(&Ray::new(origin, v, 0.), 0.0001, INFINITY)
+            .is_none()
+        {
             return 0.;
         }
         let cos_theta_max =

@@ -11,11 +11,11 @@ pub struct Perlin<const N: usize> {
 }
 
 impl<const N: usize> Perlin<N> {
-    pub fn new() -> Perlin<N> {
+    pub fn new() -> Self {
         let mut ranfloat: [Vec3; N] = [Vec3::new(0., 0., 0.); N];
 
-        for i in 0..N {
-            ranfloat[i] = random_vector(-1., 1.);
+        for item in ranfloat.iter_mut() {
+            *item = random_vector(-1., 1.);
         }
 
         let perm_x = generate_perm();

@@ -129,15 +129,14 @@ fn read_gltf_from_file<P: AsRef<Path>>(path: P) -> Result<GLTFFile, Box<dyn Erro
     Ok(gltf)
 }
 
-fn gltf_buffers_to_bytes(buffers: &Vec<GLTFBuffer>) -> Vec<Vec<u8>> {
+fn gltf_buffers_to_bytes(buffers: &[GLTFBuffer]) -> Vec<Vec<u8>> {
     let mut out: Vec<Vec<u8>> = Vec::new();
 
-    for buf in buffers.into_iter() {
-        let split: Vec<&str> = buf.uri.split(",").collect();
+    for buf in buffers.iter() {
+        let split: Vec<&str> = buf.uri.split(',').collect();
         let data = split[1];
-        match decode(data) {
-            Ok(bytes) => out.push(bytes),
-            Err(_) => (),
+        if let Ok(bytes) = decode(data) {
+            out.push(bytes);
         }
     }
 
@@ -145,12 +144,12 @@ fn gltf_buffers_to_bytes(buffers: &Vec<GLTFBuffer>) -> Vec<Vec<u8>> {
 }
 
 fn gltf_buffer_views_to_bytes(
-    buffer_views: &Vec<GLTFBufferView>,
-    buffers: &Vec<Vec<u8>>,
+    buffer_views: &[GLTFBufferView],
+    buffers: &[Vec<u8>],
 ) -> Vec<Vec<u8>> {
     let mut out: Vec<Vec<u8>> = Vec::new();
 
-    for bv in buffer_views.into_iter() {
+    for bv in buffer_views.iter() {
         out.push(
             buffers[bv.buffer].as_slice()[bv.byteOffset..(bv.byteOffset + bv.byteLength)].to_vec(),
         )
@@ -159,10 +158,10 @@ fn gltf_buffer_views_to_bytes(
     out
 }
 
-fn gltf_materials_to_materials(materials: &Vec<GLTFMaterial>) -> Vec<Arc<dyn Material>> {
+fn gltf_materials_to_materials(materials: &[GLTFMaterial]) -> Vec<Arc<dyn Material>> {
     let mut out: Vec<Arc<dyn Material>> = Vec::new();
 
-    for mat in materials.into_iter() {
+    for mat in materials.iter() {
         let color: Color = Color::new(
             mat.pbrMetallicRoughness.baseColorFactor[0],
             mat.pbrMetallicRoughness.baseColorFactor[1],
@@ -183,12 +182,12 @@ fn gltf_materials_to_materials(materials: &Vec<GLTFMaterial>) -> Vec<Arc<dyn Mat
 }
 
 fn gltf_accessors_to_data(
-    accessors: &Vec<GLTFAccessor>,
-    buffer_views: &Vec<Vec<u8>>,
+    accessors: &[GLTFAccessor],
+    buffer_views: &[Vec<u8>],
 ) -> Vec<Vec<DataType>> {
     let mut out: Vec<Vec<DataType>> = Vec::new();
 
-    for acc in accessors.into_iter() {
+    for acc in accessors.iter() {
         let bv = buffer_views[acc.bufferView].as_slice();
 
         let mut buf: Vec<DataType> = Vec::new();
@@ -240,22 +239,22 @@ fn gltf_camera_to_camera(camera: &GLTFCamera) -> Camera {
 }
 
 fn gltf_meshes_to_hittables(
-    meshes: &Vec<GLTFMesh>,
-    accessors: &Vec<Vec<DataType>>,
-    materials: &Vec<Arc<dyn Material>>,
+    meshes: &[GLTFMesh],
+    accessors: &[Vec<DataType>],
+    materials: &[Arc<dyn Material>],
 ) -> Hittables {
     let mut objects: Hittables = Vec::new();
 
-    for mesh in meshes.into_iter() {
+    for mesh in meshes.iter() {
         let indices: Vec<usize> = (&accessors[mesh.primitives[0].indices])
-            .into_iter()
+            .iter()
             .map(|x| match x {
                 DataType::Scalar(k) => *k as usize,
                 _ => 0,
             })
             .collect();
         let positions: Vec<Vec3> = (&accessors[mesh.primitives[0].attributes.POSITION])
-            .into_iter()
+            .iter()
             .map(|x| match x {
                 DataType::Vec3(v) => *v,
                 _ => Vec3::new(0., 0., 0.),
@@ -293,9 +292,8 @@ impl Scene {
             radius: 0.15,
             material: Arc::new(DiffuseLight::from_color(Color::new(1000., 1000., 1000.))),
         });
-        let mut lights: Hittables = Vec::new();
-        lights.push(light.clone());
-        objects.push(light.clone());
+        let lights: Hittables = vec![light.clone()];
+        objects.push(light);
         let world = BVHNode::new(objects, 0., 1.);
 
         Ok(Scene {

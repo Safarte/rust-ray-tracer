@@ -47,7 +47,7 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-    pub fn new(texture: Arc<dyn Texture>) -> Lambertian {
+    pub fn new(texture: Arc<dyn Texture>) -> Self {
         Lambertian {
             albedo: texture.clone(),
         }

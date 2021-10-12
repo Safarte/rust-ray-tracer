@@ -43,7 +43,7 @@ impl Hittable for Triangle {
             let u = tvec.dot(&pvec) * inv_det;
             let v = ray.direction().dot(&qvec) * inv_det;
 
-            if u >= 0. && u <= 1. && v >= 0. && u + v <= 1. {
+            if (0. ..=1.).contains(&u) && v >= 0. && u + v <= 1. {
                 let t = v0v2.dot(&qvec) * inv_det;
 
                 if t_min <= t && t <= t_max {
