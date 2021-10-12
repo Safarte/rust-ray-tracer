@@ -15,6 +15,8 @@ pub struct Triangle {
     vertices: [Point3; 3],
     material: Arc<dyn Material>,
     double_sided: bool,
+    v0v1: Vec3,
+    v0v2: Vec3,
 }
 
 impl Triangle {
@@ -23,40 +25,40 @@ impl Triangle {
             vertices: [v0, v1, v2],
             material,
             double_sided: false,
+            v0v1: v1 - v0,
+            v0v2: v2 - v0,
         }
     }
 }
 
 impl Hittable for Triangle {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let v0v1: Vec3 = self.vertices[1] - self.vertices[0];
-        let v0v2: Vec3 = self.vertices[2] - self.vertices[0];
-
-        let pvec: Vec3 = ray.direction().cross(&v0v2);
-        let det = v0v1.dot(&pvec);
+        let pvec: Vec3 = ray.direction().cross(&self.v0v2);
+        let det = self.v0v1.dot(&pvec);
 
         if det > 1e-5 || (det < -1e-5 && self.double_sided) {
             let inv_det = 1. / det;
+
             let tvec: Vec3 = ray.origin() - self.vertices[0];
-            let qvec: Vec3 = tvec.cross(&v0v1);
-
             let u = tvec.dot(&pvec) * inv_det;
-            let v = ray.direction().dot(&qvec) * inv_det;
 
-            if (0. ..=1.).contains(&u) && v >= 0. && u + v <= 1. {
-                let t = v0v2.dot(&qvec) * inv_det;
+            if (0. ..=1.).contains(&u) {
+                let qvec: Vec3 = tvec.cross(&self.v0v1);
+                let v = ray.direction().dot(&qvec) * inv_det;
 
-                if t_min <= t && t <= t_max {
-                    let p: Point3 = ray.at(t);
+                if (0. ..1. - u).contains(&v) {
+                    let t = self.v0v2.dot(&qvec) * inv_det;
 
-                    return Some(HitRecord {
-                        p,
-                        normal: unit(v0v1.cross(&v0v2)) * det.signum(),
-                        t,
-                        mat: self.material.clone(),
-                        u,
-                        v,
-                    });
+                    if (t_min..=t_max).contains(&t) {
+                        return Some(HitRecord {
+                            p: ray.at(t),
+                            normal: unit(self.v0v1.cross(&self.v0v2)) * det.signum(),
+                            t,
+                            mat: self.material.clone(),
+                            u,
+                            v,
+                        });
+                    }
                 }
             }
         }

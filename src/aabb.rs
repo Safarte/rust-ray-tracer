@@ -1,5 +1,3 @@
-use std::mem::swap;
-
 use crate::{ray::Ray, vec3::Point3};
 
 #[derive(Clone, Copy)]
@@ -12,15 +10,19 @@ impl AABB {
     pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> bool {
         for a in 0..3 {
             let inv_d = 1. / ray.direction()[a];
-            let mut t0 = (self.min[a] - ray.origin()[a]) * inv_d;
-            let mut t1 = (self.max[a] - ray.origin()[a]) * inv_d;
+            let t0 = (self.min[a] - ray.origin()[a]) * inv_d;
+            let t1 = (self.max[a] - ray.origin()[a]) * inv_d;
+
+            let min: f32;
+            let max: f32;
 
             if inv_d < 0. {
-                swap(&mut t0, &mut t1);
+                min = t1.max(t_min);
+                max = t0.min(t_max);
+            } else {
+                min = t0.max(t_min);
+                max = t1.min(t_max);
             }
-
-            let min = t0.max(t_min);
-            let max = t1.min(t_max);
 
             if max <= min {
                 return false;

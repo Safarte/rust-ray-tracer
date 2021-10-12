@@ -31,6 +31,7 @@ pub fn random_in_unit_sphere() -> Vec3 {
 pub type Point3 = Vec3;
 pub type Color = Vec3;
 
+#[inline(always)]
 pub fn get_color(color: Color, samples: u32) -> Rgb<u8> {
     // Divide color by number of samples
     let scale = 1. / (samples as f32);
