@@ -4,7 +4,7 @@ use nalgebra_glm::Vec3;
 
 use crate::{aabb::AABB, material::HitRecord, ray::Ray, vec3::Point3};
 
-use super::Hittable;
+use super::{Hittable, Node};
 
 pub struct Translate {
     base: Arc<dyn Hittable>,
@@ -16,6 +16,8 @@ impl Translate {
         Translate { base, offset }
     }
 }
+
+impl Node for Translate {}
 
 impl Hittable for Translate {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -45,6 +47,8 @@ pub struct RotateY {
     cos_theta: f32,
     bbox: Option<AABB>,
 }
+
+impl Node for RotateY {}
 
 impl RotateY {
     pub fn new(base: Arc<dyn Hittable>, angle: f32) -> RotateY {

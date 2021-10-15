@@ -10,7 +10,7 @@ use crate::{
     vec3::Point3,
 };
 
-use super::Hittable;
+use super::{Hittable, Node};
 
 pub struct XYRect {
     pub material: Arc<dyn Material>,
@@ -33,6 +33,8 @@ impl XYRect {
         }
     }
 }
+
+impl Node for XYRect {}
 
 impl Hittable for XYRect {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -86,6 +88,8 @@ impl XZRect {
         }
     }
 }
+
+impl Node for XZRect {}
 
 impl Hittable for XZRect {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -147,6 +151,8 @@ pub struct YZRect {
     pub z1: f32,
     pub k: f32,
 }
+
+impl Node for YZRect {}
 
 impl YZRect {
     pub fn new(y0: f32, y1: f32, z0: f32, z1: f32, k: f32, mat: Arc<dyn Material>) -> YZRect {

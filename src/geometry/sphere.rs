@@ -12,7 +12,7 @@ use crate::{
     vec3::Point3,
 };
 
-use super::Hittable;
+use super::{Hittable, Node};
 
 pub struct Sphere {
     pub center: Point3,
@@ -29,6 +29,8 @@ impl Sphere {
         (phi / (2. * PI), theta / PI)
     }
 }
+
+impl Node for Sphere {}
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -127,6 +129,8 @@ impl MovingSphere {
         ((phi / 2. * PI), theta / PI)
     }
 }
+
+impl Node for MovingSphere {}
 
 impl Hittable for MovingSphere {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

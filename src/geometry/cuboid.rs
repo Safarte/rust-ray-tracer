@@ -9,7 +9,7 @@ use crate::{
 
 use super::{
     aarect::{XYRect, XZRect, YZRect},
-    Hittable, Hittables,
+    Hittable, Hittables, Node,
 };
 
 pub struct Cuboid {
@@ -74,6 +74,8 @@ impl Cuboid {
         Cuboid { min, max, sides }
     }
 }
+
+impl Node for Cuboid {}
 
 impl Hittable for Cuboid {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

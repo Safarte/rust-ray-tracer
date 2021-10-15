@@ -8,7 +8,7 @@ pub mod triangle;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use nalgebra_glm::{Mat4x4, Quat, Vec3};
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
@@ -18,7 +18,15 @@ use crate::{material::HitRecord, ray::Ray};
 pub type Hittables = Vec<Arc<dyn Hittable>>;
 
 #[allow(unused)]
-pub trait Hittable: Send + Sync {
+pub trait Node: Send + Sync {
+    fn rotate(&self, quat: Quat) {}
+    fn translate(&self, direction: Vec3) {}
+    fn scale(&self, scale: Vec3) {}
+    fn transform(&self, transformation: Mat4x4) {}
+}
+
+#[allow(unused)]
+pub trait Hittable: Node {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
     fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
@@ -28,6 +36,8 @@ pub trait Hittable: Send + Sync {
         Vec3::new(1., 0., 0.)
     }
 }
+
+impl Node for Hittables {}
 
 impl Hittable for Hittables {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -96,6 +106,8 @@ pub struct BVHNode {
     pub right: Arc<dyn Hittable>,
     pub bbox: AABB,
 }
+
+impl Node for BVHNode {}
 
 impl Hittable for BVHNode {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -183,6 +195,8 @@ fn box_compare(a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize) -> Ord
 pub struct FlipFace {
     pub hittable: Arc<dyn Hittable>,
 }
+
+impl Node for FlipFace {}
 
 impl Hittable for FlipFace {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

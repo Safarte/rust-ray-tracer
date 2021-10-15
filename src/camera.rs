@@ -2,6 +2,7 @@ use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
 use crate::{
+    geometry::Node,
     ray::Ray,
     vec3::{unit, Point3},
 };
@@ -75,6 +76,8 @@ impl Camera {
         )
     }
 }
+
+impl Node for Camera {}
 
 fn random_in_unit_disk() -> Vec3 {
     let mut rng = thread_rng();

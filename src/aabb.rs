@@ -1,4 +1,4 @@
-use crate::{ray::Ray, vec3::Point3};
+use crate::{geometry::Node, ray::Ray, vec3::Point3};
 
 #[derive(Clone, Copy)]
 pub struct AABB {
@@ -31,6 +31,8 @@ impl AABB {
         true
     }
 }
+
+impl Node for AABB {}
 
 pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
     let small = Point3::new(
