@@ -72,8 +72,8 @@ fn main() {
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
 
-    for y in 0..height {
-        (0..width).into_par_iter().for_each(|x| {
+    (0..height).into_par_iter().for_each(|y| {
+        for x in 0..width {
             let mut rng = thread_rng();
             let mut color = Color::new(0., 0., 0.);
 
@@ -96,9 +96,9 @@ fn main() {
                     .unwrap()
                     .put_pixel(x as u32, height - 1 - y, pixel);
             }
-        });
+        }
         bar.inc(1);
-    }
+    });
     bar.finish();
 
     {
