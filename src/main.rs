@@ -67,7 +67,7 @@ fn main() {
         .parse()
         .unwrap();
     let width = ((height as f32) * aspect_ratio) as u32;
-    // let scene = Arc::new(get_scene(SceneType::Random, aspect_ratio));
+    // scene = get_scene(SceneType::CornellBox, aspect_ratio);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
