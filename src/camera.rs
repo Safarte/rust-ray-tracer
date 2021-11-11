@@ -7,6 +7,7 @@ use crate::{
     vec3::{unit, Point3},
 };
 
+// TODO: Refactor camera to have a more standard implementation
 pub struct Camera {
     origin: Point3,
     lower_left_corner: Point3,
