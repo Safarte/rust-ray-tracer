@@ -122,13 +122,18 @@ fn two_spheres() -> Hittables {
     world.push(Arc::new(Sphere {
         center: Point3::new(0., -10., 0.),
         radius: 10.,
-        material: Arc::new(Lambertian::new(checker.clone())),
+        material: Arc::new(Lambertian::new(checker)),
     }));
+
+    let checker_tex = Arc::new(Checker::new(
+        Arc::new(ImageTexture::from_file("./earthmap.jpg")),
+        Arc::new(ImageTexture::from_file("./earthmap.jpg")),
+    ));
 
     world.push(Arc::new(Sphere {
         center: Point3::new(0., 10., 0.),
         radius: 10.,
-        material: Arc::new(Lambertian::new(checker)),
+        material: Arc::new(Lambertian::new(checker_tex)),
     }));
 
     world
@@ -382,10 +387,10 @@ fn final_scene() -> Hittables {
         radius: 5000.,
         material: Arc::new(Dielectric { ir: 1.5 }),
     });
-    world.push(Arc::new(ConstantMedium::from_color(
+    world.push(Arc::new(ConstantMedium::from_texture(
         fog,
         0.0001,
-        Color::new(1., 1., 1.),
+        Arc::new(ImageTexture::from_file("./earthmap.jpg")),
     )));
     let emat = Arc::new(Lambertian::new(Arc::new(ImageTexture::from_file(
         "earthmap.jpg",
