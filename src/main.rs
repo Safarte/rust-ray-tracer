@@ -56,7 +56,7 @@ fn main() {
     bar.set_style(
         ProgressStyle::default_bar()
         .template("{percent}% {bar:80.cyan/blue} [Elapsed: {elapsed_precise} | Remaining: {eta_precise}]")
-        .progress_chars("##-"),
+        .progress_chars("██⎯"),
     );
 
     // Scene
