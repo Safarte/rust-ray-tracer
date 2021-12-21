@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use glam::vec3a;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -56,7 +56,7 @@ impl Hittable for ConstantMedium {
 
                 rec1.t = rec1.t.max(0.);
 
-                let ray_length = ray.direction().norm();
+                let ray_length = ray.direction().length();
                 let dist_in_boundary = (rec2.t - rec1.t) * ray_length;
                 let hit_distance = self.neg_inv_density * rng.gen::<f32>().ln();
 
@@ -69,7 +69,7 @@ impl Hittable for ConstantMedium {
                 return Some(HitRecord {
                     t,
                     p: ray.at(t),
-                    normal: Vec3::new(1., 0., 0.),
+                    normal: vec3a(1., 0., 0.),
                     mat: self.phase_function.clone(),
                     u: 0.,
                     v: 0.,

@@ -1,21 +1,17 @@
-use nalgebra_glm::Vec3;
+use glam::{vec3a, Vec3A};
 use rand::{thread_rng, Rng};
 
-use crate::{
-    geometry::Node,
-    ray::Ray,
-    vec3::{unit, Point3},
-};
+use crate::{geometry::Node, ray::Ray};
 
 // TODO: Refactor camera to have a more standard implementation
 pub struct Camera {
-    origin: Point3,
-    lower_left_corner: Point3,
-    horizontal: Vec3,
-    vertical: Vec3,
-    u: Vec3,
-    v: Vec3,
-    // w: Vec3,
+    origin: Vec3A,
+    lower_left_corner: Vec3A,
+    horizontal: Vec3A,
+    vertical: Vec3A,
+    u: Vec3A,
+    v: Vec3A,
+    // w: Vec3A,
     lens_radius: f32,
     time0: f32,
     time1: f32,
@@ -24,9 +20,9 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(
-        lookfrom: Point3,
-        lookat: Point3,
-        vup: Vec3,
+        lookfrom: Vec3A,
+        lookat: Vec3A,
+        vup: Vec3A,
         vfov: f32, // Vertical FoV
         aspect_ratio: f32,
         aperture: f32,
@@ -39,15 +35,14 @@ impl Camera {
         let viewport_height = 2. * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w: Vec3 = unit(lookfrom - lookat);
-        let u: Vec3 = unit(vup.cross(&w));
-        let v: Vec3 = w.cross(&u);
+        let w = (lookfrom - lookat).normalize();
+        let u = vup.cross(w).normalize();
+        let v = w.cross(u);
 
-        let origin: Point3 = lookfrom;
-        let horizontal: Vec3 = focus_dist * viewport_width * u;
-        let vertical: Vec3 = focus_dist * viewport_height * v;
-        let lower_left_corner: Point3 =
-            origin - (horizontal / 2.) - (vertical / 2.) - focus_dist * w;
+        let origin = lookfrom;
+        let horizontal = focus_dist * viewport_width * u;
+        let vertical = focus_dist * viewport_height * v;
+        let lower_left_corner = origin - (horizontal / 2.) - (vertical / 2.) - focus_dist * w;
 
         let lens_radius = aperture / 2.;
 
@@ -68,8 +63,8 @@ impl Camera {
 
     pub fn get_ray(&self, s: f32, t: f32) -> Ray {
         let mut rng = thread_rng();
-        let rd: Vec3 = self.lens_radius * random_in_unit_disk();
-        let offset: Vec3 = self.u * rd[0] + self.v * rd[1];
+        let rd = self.lens_radius * random_in_unit_disk();
+        let offset = self.u * rd[0] + self.v * rd[1];
         Ray::new(
             self.origin + offset,
             self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset,
@@ -80,13 +75,13 @@ impl Camera {
 
 impl Node for Camera {}
 
-fn random_in_unit_disk() -> Vec3 {
+fn random_in_unit_disk() -> Vec3A {
     let mut rng = thread_rng();
     let min = -1.;
     let max = 1.;
     loop {
-        let p: Point3 = Vec3::new(rng.gen_range(min..max), rng.gen_range(min..max), 0.);
-        if p.norm_squared() < 1. {
+        let p = vec3a(rng.gen_range(min..max), rng.gen_range(min..max), 0.);
+        if p.length_squared() < 1. {
             return p;
         }
     }

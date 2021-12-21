@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use glam::Vec3A;
+
 use crate::{
     aabb::AABB,
     material::{HitRecord, Material},
     ray::Ray,
-    vec3::Point3,
 };
 
 use super::{
@@ -13,13 +14,13 @@ use super::{
 };
 
 pub struct Cuboid {
-    min: Point3,
-    max: Point3,
+    min: Vec3A,
+    max: Vec3A,
     sides: Hittables,
 }
 
 impl Cuboid {
-    pub fn new(min: Point3, max: Point3, mat: Arc<dyn Material>) -> Cuboid {
+    pub fn new(min: Vec3A, max: Vec3A, mat: Arc<dyn Material>) -> Cuboid {
         let sides: Hittables = vec![
             Arc::new(XYRect::new(
                 min[0],

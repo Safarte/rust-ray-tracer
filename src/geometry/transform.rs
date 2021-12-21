@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use glam::{vec3a, Vec3A};
 
-use crate::{aabb::AABB, material::HitRecord, ray::Ray, vec3::Point3};
+use crate::{aabb::AABB, material::HitRecord, ray::Ray};
 
 use super::{Hittable, Node};
 
 pub struct Translate {
     base: Arc<dyn Hittable>,
-    offset: Vec3,
+    offset: Vec3A,
 }
 
 impl Translate {
-    pub fn new(base: Arc<dyn Hittable>, offset: Vec3) -> Translate {
+    pub fn new(base: Arc<dyn Hittable>, offset: Vec3A) -> Translate {
         Translate { base, offset }
     }
 }
@@ -57,8 +57,8 @@ impl RotateY {
         let cos_theta = radians.cos();
 
         if let Some(bbox) = base.bounding_box(0., 1.) {
-            let mut min = Point3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY);
-            let mut max = Point3::new(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY);
+            let mut min = vec3a(f32::INFINITY, f32::INFINITY, f32::INFINITY);
+            let mut max = vec3a(-f32::INFINITY, -f32::INFINITY, -f32::INFINITY);
 
             for i in 0..2 {
                 for j in 0..2 {
@@ -70,7 +70,7 @@ impl RotateY {
                         let newx = cos_theta * x + sin_theta * z;
                         let newz = -sin_theta * x + cos_theta * z;
 
-                        let tester = Vec3::new(newx, y, newz);
+                        let tester = vec3a(newx, y, newz);
 
                         for c in 0..3 {
                             min[c] = min[c].min(tester[c]);
@@ -121,7 +121,7 @@ impl Hittable for RotateY {
 
             let mut new_rec = rec;
             new_rec.p = p;
-            new_rec.normal = -normal * normal.dot(&rotated.direction()).signum();
+            new_rec.normal = -normal * normal.dot(rotated.direction()).signum();
 
             return Some(new_rec);
         }

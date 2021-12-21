@@ -1,20 +1,17 @@
 use std::{f32::consts::PI, sync::Arc};
 
-use nalgebra_glm::Vec3;
+use glam::{vec3a, Vec3A};
 use rand::{thread_rng, Rng};
 
-use crate::{
-    geometry::Hittable,
-    vec3::{unit, OrthNormBasis, Point3},
-};
+use crate::{geometry::Hittable, vec3::OrthNormBasis};
 
 pub trait PDF {
-    fn value(&self, direction: Vec3) -> f32;
-    fn generate(&self) -> Vec3;
+    fn value(&self, direction: Vec3A) -> f32;
+    fn generate(&self) -> Vec3A;
 }
 
 #[inline]
-fn random_cosine_direction() -> Vec3 {
+fn random_cosine_direction() -> Vec3A {
     let mut rng = thread_rng();
     let r1: f32 = rng.gen();
     let r2: f32 = rng.gen();
@@ -25,7 +22,7 @@ fn random_cosine_direction() -> Vec3 {
     let x = phi.cos() * sr2;
     let y = phi.sin() * sr2;
 
-    Vec3::new(x, y, z)
+    vec3a(x, y, z)
 }
 
 pub struct CosinePDF {
@@ -33,7 +30,7 @@ pub struct CosinePDF {
 }
 
 impl CosinePDF {
-    pub fn new(w: Vec3) -> Self {
+    pub fn new(w: Vec3A) -> Self {
         Self {
             uvw: OrthNormBasis::from_w(w),
         }
@@ -41,33 +38,33 @@ impl CosinePDF {
 }
 
 impl PDF for CosinePDF {
-    fn value(&self, direction: Vec3) -> f32 {
-        let cosine = unit(direction).dot(&self.uvw.w);
+    fn value(&self, direction: Vec3A) -> f32 {
+        let cosine = direction.normalize().dot(self.uvw.w);
         (cosine / PI).max(0.)
     }
 
-    fn generate(&self) -> Vec3 {
+    fn generate(&self) -> Vec3A {
         self.uvw.local(random_cosine_direction())
     }
 }
 
 pub struct HittablePDF {
-    origin: Point3,
+    origin: Vec3A,
     hittable: Arc<dyn Hittable>,
 }
 
 impl HittablePDF {
-    pub fn new(origin: Point3, hittable: Arc<dyn Hittable>) -> Self {
+    pub fn new(origin: Vec3A, hittable: Arc<dyn Hittable>) -> Self {
         Self { origin, hittable }
     }
 }
 
 impl PDF for HittablePDF {
-    fn value(&self, direction: Vec3) -> f32 {
+    fn value(&self, direction: Vec3A) -> f32 {
         self.hittable.pdf_value(self.origin, direction)
     }
 
-    fn generate(&self) -> Vec3 {
+    fn generate(&self) -> Vec3A {
         self.hittable.random(self.origin)
     }
 }
@@ -83,11 +80,11 @@ impl MixturePDF {
 }
 
 impl PDF for MixturePDF {
-    fn value(&self, direction: Vec3) -> f32 {
+    fn value(&self, direction: Vec3A) -> f32 {
         0.5 * self.p[0].value(direction) + 0.5 * self.p[1].value(direction)
     }
 
-    fn generate(&self) -> Vec3 {
+    fn generate(&self) -> Vec3A {
         let mut rng = thread_rng();
 
         if rng.gen_bool(0.5) {

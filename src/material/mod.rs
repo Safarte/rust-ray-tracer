@@ -3,20 +3,20 @@ pub mod texture;
 
 use std::{f32::consts::PI, sync::Arc};
 
-use nalgebra_glm::Vec3;
+use glam::Vec3A;
 use rand::{thread_rng, Rng};
 
 use crate::{
     pdf::{CosinePDF, PDF},
     ray::Ray,
-    vec3::{random_in_unit_sphere, unit, Color, Point3},
+    vec3::{random_in_unit_sphere, Color},
 };
 
 use self::texture::{SolidColor, Texture};
 
 pub struct HitRecord {
-    pub p: Point3,
-    pub normal: Vec3,
+    pub p: Vec3A,
+    pub normal: Vec3A,
     pub t: f32,
     pub mat: Arc<dyn Material>,
     pub u: f32,
@@ -37,7 +37,7 @@ pub trait Material: Send + Sync {
     fn scattering_pdf(&self, r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f32 {
         0.
     }
-    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f32, v: f32, p: &Point3) -> Color {
+    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f32, v: f32, p: &Vec3A) -> Color {
         Color::new(0., 0., 0.)
     }
 }
@@ -76,7 +76,7 @@ impl Material for Lambertian {
     }
 
     fn scattering_pdf(&self, _r_in: &Ray, rec: &HitRecord, scattered: &Ray) -> f32 {
-        let cosine = rec.normal.dot(&unit(scattered.direction())) / PI;
+        let cosine = rec.normal.dot(scattered.direction().normalize()) / PI;
         cosine.max(0.)
     }
 }
@@ -88,13 +88,13 @@ pub struct Metal {
 
 impl Material for Metal {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
-        let reflected = reflect(unit(r_in.direction()), rec.normal);
+        let reflected = reflect(r_in.direction().normalize(), rec.normal);
         let scattered = Ray::new(
             rec.p,
             reflected + self.fuzziness * random_in_unit_sphere(),
             r_in.time(),
         );
-        if scattered.direction().dot(&rec.normal) > 0. {
+        if scattered.direction().dot(rec.normal) > 0. {
             return Some(Scatter {
                 specular_ray: Some(scattered),
                 attenuation: self.albedo,
@@ -115,12 +115,12 @@ impl Material for Dielectric {
         let mut refraction_ratio = 1. / self.ir;
         let mut n = rec.normal;
 
-        if r_in.direction().dot(&rec.normal) > 0. {
+        if r_in.direction().dot(rec.normal) > 0. {
             refraction_ratio = self.ir;
             n = -rec.normal;
         }
-        let unit_direction = unit(r_in.direction());
-        let cos_theta = -unit_direction.dot(&n).min(1.);
+        let unit_direction = r_in.direction().normalize();
+        let cos_theta = -unit_direction.dot(n).min(1.);
 
         let attenuation = Color::new(1., 1., 1.);
 
@@ -145,18 +145,18 @@ impl Material for Dielectric {
     }
 }
 
-fn reflect(v: Vec3, n: Vec3) -> Vec3 {
-    v - 2. * v.dot(&n) * n
+fn reflect(v: Vec3A, n: Vec3A) -> Vec3A {
+    v - 2. * v.dot(n) * n
 }
 
-fn refract(uv: Vec3, n: Vec3, refraction_ratio: f32) -> Option<Vec3> {
-    let cos_theta = -uv.dot(&n).min(1.);
+fn refract(uv: Vec3A, n: Vec3A, refraction_ratio: f32) -> Option<Vec3A> {
+    let cos_theta = -uv.dot(n).min(1.);
     let sin_theta = (1. - cos_theta * cos_theta).sqrt();
     if refraction_ratio * sin_theta > 1. {
         return None;
     }
     let r_out_ortho = refraction_ratio * (uv + cos_theta * n);
-    let r_out_para = -(1. - r_out_ortho.norm_squared()).abs().sqrt() * n;
+    let r_out_para = -(1. - r_out_ortho.length_squared()).abs().sqrt() * n;
     Some(r_out_ortho + r_out_para)
 }
 
@@ -183,8 +183,8 @@ impl Material for DiffuseLight {
         None
     }
 
-    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f32, v: f32, p: &Point3) -> Color {
-        if r_in.direction().dot(&rec.normal) < 0. {
+    fn emitted(&self, r_in: &Ray, rec: &HitRecord, u: f32, v: f32, p: &Vec3A) -> Color {
+        if r_in.direction().dot(rec.normal) < 0. {
             return self.emit.value(u, v, p);
         }
         Color::new(0., 0., 0.)

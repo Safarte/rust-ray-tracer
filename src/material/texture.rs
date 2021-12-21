@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
+use glam::Vec3A;
 use image::io::Reader as ImageReader;
 use image::{GenericImageView, Pixel, RgbImage};
 
-use crate::vec3::{Color, Point3};
+use crate::vec3::Color;
 
 use super::perlin::Perlin;
 
 pub trait Texture: Send + Sync {
-    fn value(&self, u: f32, v: f32, p: &Point3) -> Color;
+    fn value(&self, u: f32, v: f32, p: &Vec3A) -> Color;
 }
 
 pub struct SolidColor {
@@ -22,7 +23,7 @@ impl SolidColor {
 }
 
 impl Texture for SolidColor {
-    fn value(&self, _u: f32, _v: f32, _p: &Point3) -> Color {
+    fn value(&self, _u: f32, _v: f32, _p: &Vec3A) -> Color {
         self.color_value
     }
 }
@@ -46,7 +47,7 @@ impl Checker {
 }
 
 impl Texture for Checker {
-    fn value(&self, u: f32, v: f32, p: &Point3) -> Color {
+    fn value(&self, u: f32, v: f32, p: &Vec3A) -> Color {
         let sines = (10. * p[0]).sin() * (10. * p[1]).sin() * (10. * p[2]).sin();
 
         if sines < 0. {
@@ -71,7 +72,7 @@ impl Noise {
 }
 
 impl Texture for Noise {
-    fn value(&self, _u: f32, _v: f32, p: &Point3) -> Color {
+    fn value(&self, _u: f32, _v: f32, p: &Vec3A) -> Color {
         // Color::new(1., 1., 1.) * 0.5 * (1. + self.noise.noise(self.scale * *p))
         // Color::new(1., 1., 1.) * self.noise.turb(self.scale * *p, 4)
         Color::new(1., 1., 1.)
@@ -107,7 +108,7 @@ impl ImageTexture {
 }
 
 impl Texture for ImageTexture {
-    fn value(&self, u: f32, v: f32, _p: &Point3) -> Color {
+    fn value(&self, u: f32, v: f32, _p: &Vec3A) -> Color {
         if let Some(data) = &self.data {
             let cu = u.clamp(0., 1.);
             let cv = 1. - v.clamp(0., 1.);

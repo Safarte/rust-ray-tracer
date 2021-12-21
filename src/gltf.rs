@@ -1,7 +1,7 @@
 use std::{convert::TryInto, error::Error, fs::read_to_string, path::Path, sync::Arc};
 
 use base64::decode;
-use nalgebra_glm::{Vec2, Vec3};
+use glam::{vec3a, Vec2, Vec3A};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
@@ -10,12 +10,12 @@ use crate::{
     geometry::{sphere::Sphere, triangle::Triangle, BVHNode, Hittables},
     material::{DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
-    vec3::{Color, Point3},
+    vec3::Color,
 };
 
 #[derive(Debug)]
 enum DataType {
-    Vec3(Vec3),
+    Vec3(Vec3A),
     Vec2(Vec2),
     Scalar(u16),
 }
@@ -198,7 +198,7 @@ fn gltf_accessors_to_data(
                     let x = f32::from_le_bytes(bv[(12 * i)..(12 * i + 4)].try_into().unwrap());
                     let y = f32::from_le_bytes(bv[(12 * i + 4)..(12 * i + 8)].try_into().unwrap());
                     let z = f32::from_le_bytes(bv[(12 * i + 8)..(12 * i + 12)].try_into().unwrap());
-                    buf.push(DataType::Vec3(Vec3::new(x, y, z)));
+                    buf.push(DataType::Vec3(vec3a(x, y, z)));
                 }
                 "VEC2" => {
                     let x = f32::from_le_bytes(bv[(8 * i)..(8 * i + 4)].try_into().unwrap());
@@ -220,9 +220,9 @@ fn gltf_accessors_to_data(
 }
 
 fn gltf_camera_to_camera(camera: &GLTFCamera) -> Camera {
-    let lookfrom: Point3 = Point3::new(1., 1., 7.);
-    let lookat: Point3 = Point3::new(0., 0., 0.);
-    let vup: Vec3 = Vec3::new(0., 1., 0.);
+    let lookfrom = vec3a(1., 1., 7.);
+    let lookat = vec3a(0., 0., 0.);
+    let vup = vec3a(0., 1., 0.);
     let aperture = 0.;
 
     Camera::new(
@@ -253,18 +253,18 @@ fn gltf_meshes_to_hittables(
                 _ => 0,
             })
             .collect();
-        let positions: Vec<Vec3> = (&accessors[mesh.primitives[0].attributes.POSITION])
+        let positions: Vec<Vec3A> = (&accessors[mesh.primitives[0].attributes.POSITION])
             .iter()
             .map(|x| match x {
                 DataType::Vec3(v) => *v,
-                _ => Vec3::new(0., 0., 0.),
+                _ => vec3a(0., 0., 0.),
             })
             .collect();
 
         for i in 0..(indices.len() / 3) {
-            let v0: Point3 = positions[indices[3 * i]];
-            let v1: Point3 = positions[indices[3 * i + 1]];
-            let v2: Point3 = positions[indices[3 * i + 2]];
+            let v0 = positions[indices[3 * i]];
+            let v1 = positions[indices[3 * i + 1]];
+            let v2 = positions[indices[3 * i + 2]];
 
             let triangle =
                 Triangle::new(v0, v1, v2, materials[mesh.primitives[0].material].clone());
@@ -288,7 +288,7 @@ impl Scene {
         let camera = gltf_camera_to_camera(&gltf.cameras[0]);
         let mut objects = gltf_meshes_to_hittables(&gltf.meshes, &accessors, &materials);
         let light = Arc::new(Sphere {
-            center: Point3::new(2., 6., 3.),
+            center: vec3a(2., 6., 3.),
             radius: 0.15,
             material: Arc::new(DiffuseLight::from_color(Color::new(1000., 1000., 1000.))),
         });

@@ -1,26 +1,25 @@
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use glam::{vec3a, Vec3A};
 
 use crate::{
     aabb::AABB,
     material::{HitRecord, Material},
     ray::Ray,
-    vec3::{unit, Point3},
 };
 
 use super::{Hittable, Node};
 
 pub struct Triangle {
-    vertices: [Point3; 3],
+    vertices: [Vec3A; 3],
     material: Arc<dyn Material>,
     double_sided: bool,
-    v0v1: Vec3,
-    v0v2: Vec3,
+    v0v1: Vec3A,
+    v0v2: Vec3A,
 }
 
 impl Triangle {
-    pub fn new(v0: Point3, v1: Point3, v2: Point3, material: Arc<dyn Material>) -> Triangle {
+    pub fn new(v0: Vec3A, v1: Vec3A, v2: Vec3A, material: Arc<dyn Material>) -> Triangle {
         Triangle {
             vertices: [v0, v1, v2],
             material,
@@ -35,26 +34,26 @@ impl Node for Triangle {}
 
 impl Hittable for Triangle {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
-        let pvec: Vec3 = ray.direction().cross(&self.v0v2);
-        let det = self.v0v1.dot(&pvec);
+        let pvec = ray.direction().cross(self.v0v2);
+        let det = self.v0v1.dot(pvec);
 
         if det > 1e-5 || (det < -1e-5 && self.double_sided) {
             let inv_det = 1. / det;
 
-            let tvec: Vec3 = ray.origin() - self.vertices[0];
-            let u = tvec.dot(&pvec) * inv_det;
+            let tvec = ray.origin() - self.vertices[0];
+            let u = tvec.dot(pvec) * inv_det;
 
             if (0. ..=1.).contains(&u) {
-                let qvec: Vec3 = tvec.cross(&self.v0v1);
-                let v = ray.direction().dot(&qvec) * inv_det;
+                let qvec = tvec.cross(self.v0v1);
+                let v = ray.direction().dot(qvec) * inv_det;
 
                 if (0. ..1. - u).contains(&v) {
-                    let t = self.v0v2.dot(&qvec) * inv_det;
+                    let t = self.v0v2.dot(qvec) * inv_det;
 
                     if (t_min..=t_max).contains(&t) {
                         return Some(HitRecord {
                             p: ray.at(t),
-                            normal: unit(self.v0v1.cross(&self.v0v2)) * det.signum(),
+                            normal: self.v0v1.cross(self.v0v2).normalize() * det.signum(),
                             t,
                             mat: self.material.clone(),
                             u,
@@ -75,8 +74,8 @@ impl Hittable for Triangle {
         let y_max = self.vertices[0][1].max(self.vertices[1][1].max(self.vertices[2][1])) + 0.0001;
         let z_max = self.vertices[0][2].max(self.vertices[1][2].max(self.vertices[2][2])) + 0.0001;
         Some(AABB {
-            min: Point3::new(x_min, y_min, z_min),
-            max: Point3::new(x_max, y_max, z_max),
+            min: vec3a(x_min, y_min, z_min),
+            max: vec3a(x_max, y_max, z_max),
         })
     }
 }

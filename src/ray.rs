@@ -1,22 +1,22 @@
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use glam::Vec3A;
 
 use crate::{
     geometry::{Hittable, Hittables},
     pdf::{HittablePDF, MixturePDF},
-    vec3::{mul, Color, Point3},
+    vec3::{mul, Color},
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct Ray {
-    origin: Point3,
-    direction: Vec3,
+    origin: Vec3A,
+    direction: Vec3A,
     time: f32,
 }
 
 impl Ray {
-    pub fn new(origin: Point3, direction: Vec3, time: f32) -> Ray {
+    pub fn new(origin: Vec3A, direction: Vec3A, time: f32) -> Ray {
         Ray {
             origin,
             direction,
@@ -24,11 +24,11 @@ impl Ray {
         }
     }
 
-    pub fn origin(&self) -> Point3 {
+    pub fn origin(&self) -> Vec3A {
         self.origin
     }
 
-    pub fn direction(&self) -> Vec3 {
+    pub fn direction(&self) -> Vec3A {
         self.direction
     }
 
@@ -36,7 +36,7 @@ impl Ray {
         self.time
     }
 
-    pub fn at(&self, t: f32) -> Point3 {
+    pub fn at(&self, t: f32) -> Vec3A {
         self.origin + t * self.direction
     }
 }
@@ -63,7 +63,7 @@ pub fn ray_color(
                 );
             }
             let mut scattered = Ray::new(rec.p, rec.normal, 0.);
-            let mut pdf_val = 1.;
+            let mut pdf_val: f32 = 1.;
 
             if let Some(mut pdf) = scatter.pdf {
                 if !lights.is_empty() {

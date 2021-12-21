@@ -1,35 +1,30 @@
+use glam::{vec3a, Vec3A};
 use image::Rgb;
-use nalgebra_glm::Vec3;
 use rand::{thread_rng, Rng};
 
-pub fn unit(v: Vec3) -> Vec3 {
-    v / v.norm()
+pub fn mul(v: Vec3A, w: Vec3A) -> Vec3A {
+    vec3a(v[0] * w[0], v[1] * w[1], v[2] * w[2])
 }
 
-pub fn mul(v: Vec3, w: Vec3) -> Vec3 {
-    Vec3::new(v[0] * w[0], v[1] * w[1], v[2] * w[2])
-}
-
-pub fn random_vector(min: f32, max: f32) -> Vec3 {
+pub fn random_vector(min: f32, max: f32) -> Vec3A {
     let mut rng = thread_rng();
-    Vec3::new(
+    vec3a(
         rng.gen_range(min..max),
         rng.gen_range(min..max),
         rng.gen_range(min..max),
     )
 }
 
-pub fn random_in_unit_sphere() -> Vec3 {
+pub fn random_in_unit_sphere() -> Vec3A {
     loop {
         let p = random_vector(-1.0, 1.0);
-        if p.norm_squared() < 1. {
+        if p.length_squared() < 1. {
             return p;
         }
     }
 }
 
-pub type Point3 = Vec3;
-pub type Color = Vec3;
+pub type Color = Vec3A;
 
 #[inline(always)]
 pub fn get_color(color: Color, samples: u32) -> Rgb<u8> {
@@ -58,29 +53,21 @@ pub fn get_color(color: Color, samples: u32) -> Rgb<u8> {
 }
 
 pub struct OrthNormBasis {
-    pub u: Vec3,
-    pub v: Vec3,
-    pub w: Vec3,
+    pub u: Vec3A,
+    pub v: Vec3A,
+    pub w: Vec3A,
 }
 
 impl OrthNormBasis {
-    pub fn from_w(n: Vec3) -> OrthNormBasis {
-        let w: Vec3 = unit(n);
+    pub fn from_w(n: Vec3A) -> OrthNormBasis {
+        let w = n.normalize();
 
-        let a: Vec3;
-        if w[0].abs() > 0.9 {
-            a = Vec3::new(0., 1., 0.)
-        } else {
-            a = Vec3::new(1., 0., 0.)
-        }
-
-        let v: Vec3 = unit(w.cross(&a));
-        let u: Vec3 = w.cross(&v);
+        let (u, v) = w.any_orthonormal_pair();
 
         OrthNormBasis { u, v, w }
     }
 
-    pub fn local(&self, a: Vec3) -> Vec3 {
+    pub fn local(&self, a: Vec3A) -> Vec3A {
         a[0] * self.u + a[1] * self.v + a[2] * self.w
     }
 }

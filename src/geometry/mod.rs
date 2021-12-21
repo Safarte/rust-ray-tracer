@@ -8,11 +8,10 @@ pub mod triangle;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-use nalgebra_glm::{Mat4x4, Quat, Vec3};
+use glam::{vec3a, Mat4, Quat, Vec3A};
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
-use crate::vec3::Point3;
 use crate::{material::HitRecord, ray::Ray};
 
 pub type Hittables = Vec<Arc<dyn Hittable>>;
@@ -20,20 +19,20 @@ pub type Hittables = Vec<Arc<dyn Hittable>>;
 #[allow(unused)]
 pub trait Node: Send + Sync {
     fn rotate(&self, quat: Quat) {}
-    fn translate(&self, direction: Vec3) {}
-    fn scale(&self, scale: Vec3) {}
-    fn transform(&self, transformation: Mat4x4) {}
+    fn translate(&self, direction: Vec3A) {}
+    fn scale(&self, scale: Vec3A) {}
+    fn transform(&self, transformation: Mat4) {}
 }
 
 #[allow(unused)]
 pub trait Hittable: Node {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
-    fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
+    fn pdf_value(&self, origin: Vec3A, v: Vec3A) -> f32 {
         0.
     }
-    fn random(&self, origin: Point3) -> Vec3 {
-        Vec3::new(1., 0., 0.)
+    fn random(&self, origin: Vec3A) -> Vec3A {
+        Vec3A::new(1., 0., 0.)
     }
 }
 
@@ -63,8 +62,8 @@ impl Hittable for Hittables {
         }
 
         let mut out = AABB {
-            min: Point3::new(0., 0., 0.),
-            max: Point3::new(0., 0., 0.),
+            min: vec3a(0., 0., 0.),
+            max: vec3a(0., 0., 0.),
         };
         let mut first_box = true;
 
@@ -84,7 +83,7 @@ impl Hittable for Hittables {
         Some(out)
     }
 
-    fn pdf_value(&self, origin: Point3, v: Vec3) -> f32 {
+    fn pdf_value(&self, origin: Vec3A, v: Vec3A) -> f32 {
         let weight = 1. / self.len() as f32;
         let mut sum = 0.;
 
@@ -95,7 +94,7 @@ impl Hittable for Hittables {
         sum
     }
 
-    fn random(&self, origin: Point3) -> Vec3 {
+    fn random(&self, origin: Vec3A) -> Vec3A {
         let mut rng = thread_rng();
         self[rng.gen_range(0..self.len())].random(origin)
     }
@@ -202,7 +201,7 @@ impl Hittable for FlipFace {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
         if let Some(rec) = self.hittable.hit(ray, t_min, t_max) {
             let mut new_rec = rec;
-            new_rec.normal = Vec3::new(
+            new_rec.normal = Vec3A::new(
                 new_rec.normal[0],
                 -new_rec.normal[1].abs(),
                 new_rec.normal[2],

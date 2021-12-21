@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use nalgebra_glm::Vec3;
+use glam::vec3a;
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
         DiffuseLight,
     },
     material::{Dielectric, Lambertian, Metal},
-    vec3::{random_vector, Color, Point3},
+    vec3::{random_vector, Color},
 };
 
 pub struct Scene {
@@ -37,27 +37,27 @@ fn random_scene() -> Hittables {
     let pertex = Arc::new(Noise::new(4.));
     let ground_material = Arc::new(Lambertian::new(pertex));
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., -1000., 0.),
+        center: vec3a(0., -1000., 0.),
         radius: 1000.,
         material: ground_material,
     }));
 
-    let comp = Point3::new(4., 0.2, 0.);
+    let comp = vec3a(4., 0.2, 0.);
 
     for a in -15..15 {
         for b in -15..15 {
             let choose_mat: f32 = rng.gen();
-            let center = Point3::new(
+            let center = vec3a(
                 a as f32 + 0.9 * rng.gen::<f32>(),
                 0.2,
                 b as f32 + 0.9 * rng.gen::<f32>(),
             );
 
-            if (center - comp).norm() > 0.9 {
+            if (center - comp).length() > 0.9 {
                 if choose_mat < 0.8 {
                     let albedo: Color = random_vector(0., 1.);
                     let material = Arc::new(Lambertian::from_rgb(albedo[0], albedo[1], albedo[2]));
-                    let center1: Point3 = center + Vec3::new(0., rng.gen_range((0.)..0.5), 0.);
+                    let center1 = center + vec3a(0., rng.gen_range((0.)..0.5), 0.);
                     world.push(Arc::new(MovingSphere {
                         center0: center,
                         center1,
@@ -89,20 +89,20 @@ fn random_scene() -> Hittables {
 
     let material = Arc::new(Lambertian::from_rgb(0.4, 0.2, 0.1));
     world.push(Arc::new(Sphere {
-        center: Point3::new(-4., 1., 0.),
+        center: vec3a(-4., 1., 0.),
         radius: 1.,
         material,
     }));
     let material = Arc::new(Dielectric { ir: 1.5 });
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 1., 0.),
+        center: vec3a(0., 1., 0.),
         radius: 1.,
         material,
     }));
     let img_tex = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
     let img_mat = Arc::new(Lambertian::new(img_tex));
     world.push(Arc::new(Sphere {
-        center: Point3::new(4., 1., 0.),
+        center: vec3a(4., 1., 0.),
         radius: 1.,
         material: img_mat,
     }));
@@ -120,7 +120,7 @@ fn two_spheres() -> Hittables {
     ));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., -10., 0.),
+        center: vec3a(0., -10., 0.),
         radius: 10.,
         material: Arc::new(Lambertian::new(checker)),
     }));
@@ -131,7 +131,7 @@ fn two_spheres() -> Hittables {
     ));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 10., 0.),
+        center: vec3a(0., 10., 0.),
         radius: 10.,
         material: Arc::new(Lambertian::new(checker_tex)),
     }));
@@ -146,13 +146,13 @@ fn perlin_spheres() -> Hittables {
     let pertex = Arc::new(Noise::new(4.));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., -1000., 0.),
+        center: vec3a(0., -1000., 0.),
         radius: 1000.,
         material: Arc::new(Lambertian::new(pertex.clone())),
     }));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 1., 0.),
+        center: vec3a(0., 1., 0.),
         radius: 1.,
         material: Arc::new(Lambertian::new(pertex)),
     }));
@@ -167,7 +167,7 @@ fn earth() -> Hittables {
     let earth_texture = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
     let earth_surface = Arc::new(Lambertian::new(earth_texture));
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 0., 0.),
+        center: vec3a(0., 0., 0.),
         radius: 2.,
         material: earth_surface,
     }));
@@ -182,13 +182,13 @@ fn simple_light() -> Hittables {
     let pertex = Arc::new(Noise::new(4.));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., -1000., 0.),
+        center: vec3a(0., -1000., 0.),
         radius: 1000.,
         material: Arc::new(Lambertian::new(pertex)),
     }));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 2., 0.),
+        center: vec3a(0., 2., 0.),
         radius: 2.,
         material: Arc::new(Metal {
             albedo: Color::new(0.5, 0.5, 0.5),
@@ -208,7 +208,7 @@ fn simple_light() -> Hittables {
     )));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 6., 0.),
+        center: vec3a(0., 6., 0.),
         radius: 1.,
         material: diff_light,
     }));
@@ -253,21 +253,21 @@ fn cornell_box() -> Hittables {
     //     fuzziness: 0.,
     // });
     let mut box1: Arc<dyn Hittable> = Arc::new(Cuboid::new(
-        Point3::new(0., 0., 0.),
-        Point3::new(165., 330., 165.),
+        vec3a(0., 0., 0.),
+        vec3a(165., 330., 165.),
         white.clone(),
     ));
     box1 = Arc::new(RotateY::new(box1.clone(), 15.));
-    box1 = Arc::new(Translate::new(box1.clone(), Vec3::new(265., 0., 295.)));
+    box1 = Arc::new(Translate::new(box1.clone(), vec3a(265., 0., 295.)));
     world.push(box1);
 
     let mut box2: Arc<dyn Hittable> = Arc::new(Cuboid::new(
-        Point3::new(0., 0., 0.),
-        Point3::new(165., 165., 165.),
+        vec3a(0., 0., 0.),
+        vec3a(165., 165., 165.),
         white,
     ));
     box2 = Arc::new(RotateY::new(box2.clone(), -18.));
-    box2 = Arc::new(Translate::new(box2.clone(), Vec3::new(130., 0., 65.)));
+    box2 = Arc::new(Translate::new(box2.clone(), vec3a(130., 0., 65.)));
     world.push(box2);
 
     world
@@ -303,9 +303,9 @@ fn cornell_triangle() -> Hittables {
     // let mat = Arc::new(Lambertian::new(Arc::new(Noise::new(0.07))));
     // let mat = Arc::new(Dielectric { ir: 1.5 });
     world.push(Arc::new(Triangle::new(
-        Point3::new(250., 0., 400.),
-        Point3::new(100., 150., 400.),
-        Point3::new(400., 150., 400.),
+        vec3a(250., 0., 400.),
+        vec3a(100., 150., 400.),
+        vec3a(400., 150., 400.),
         mat,
     )));
 
@@ -334,8 +334,8 @@ fn final_scene() -> Hittables {
             let z1 = z0 + w;
 
             boxes1.push(Arc::new(Cuboid::new(
-                Point3::new(x0, y0, z0),
-                Point3::new(x1, y1, z1),
+                vec3a(x0, y0, z0),
+                vec3a(x1, y1, z1),
                 ground.clone(),
             )))
         }
@@ -346,8 +346,8 @@ fn final_scene() -> Hittables {
     let light = Arc::new(DiffuseLight::from_color(Color::new(7., 7., 7.)));
     world.push(Arc::new(XZRect::new(123., 423., 147., 412., 554., light)));
 
-    let center0 = Point3::new(400., 400., 200.);
-    let center1 = center0 + Vec3::new(30., 0., 0.);
+    let center0 = vec3a(400., 400., 200.);
+    let center1 = center0 + vec3a(30., 0., 0.);
     let moving_sphere_mat = Arc::new(Lambertian::from_rgb(0.7, 0.3, 0.1));
     world.push(Arc::new(MovingSphere {
         center0,
@@ -359,12 +359,12 @@ fn final_scene() -> Hittables {
     }));
 
     world.push(Arc::new(Sphere {
-        center: Point3::new(260., 150., 45.),
+        center: vec3a(260., 150., 45.),
         radius: 45.,
         material: Arc::new(Dielectric { ir: 1.5 }),
     }));
     world.push(Arc::new(Sphere {
-        center: Point3::new(0., 150., 145.),
+        center: vec3a(0., 150., 145.),
         radius: 50.,
         material: Arc::new(Metal {
             albedo: Color::new(0.8, 0.8, 0.9),
@@ -372,7 +372,7 @@ fn final_scene() -> Hittables {
         }),
     }));
     let boundary = Arc::new(Sphere {
-        center: Point3::new(360., 150., 145.),
+        center: vec3a(360., 150., 145.),
         radius: 70.,
         material: Arc::new(Dielectric { ir: 1.5 }),
     });
@@ -383,7 +383,7 @@ fn final_scene() -> Hittables {
         Color::new(0.2, 0.4, 0.9),
     )));
     let fog = Arc::new(Sphere {
-        center: Point3::new(0., 0., 0.),
+        center: vec3a(0., 0., 0.),
         radius: 5000.,
         material: Arc::new(Dielectric { ir: 1.5 }),
     });
@@ -396,13 +396,13 @@ fn final_scene() -> Hittables {
         "earthmap.jpg",
     ))));
     world.push(Arc::new(Sphere {
-        center: Point3::new(400., 200., 400.),
+        center: vec3a(400., 200., 400.),
         radius: 100.,
         material: emat,
     }));
     let pertex = Arc::new(Lambertian::new(Arc::new(Noise::new(2.))));
     world.push(Arc::new(Sphere {
-        center: Point3::new(220., 280., 200.),
+        center: vec3a(220., 280., 200.),
         radius: 80.,
         material: pertex,
     }));
@@ -420,7 +420,7 @@ fn final_scene() -> Hittables {
 
     world.push(Arc::new(Translate::new(
         Arc::new(RotateY::new(BVHNode::new(boxes2, 0., 1.), 15.)),
-        Vec3::new(-100., 270., 395.),
+        vec3a(-100., 270., 395.),
     )));
 
     world
@@ -440,14 +440,14 @@ pub enum SceneType {
 
 #[allow(unused)]
 pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
-    let vup = Vec3::new(0., 1., 0.);
+    let vup = vec3a(0., 1., 0.);
     let dist_to_focus = 10.;
 
     match scene_type {
         SceneType::Random => {
             let scene = random_scene();
-            let lookfrom = Point3::new(13., 2., 3.);
-            let lookat = Point3::new(0., 0., 0.);
+            let lookfrom = vec3a(13., 2., 3.);
+            let lookat = vec3a(0., 0., 0.);
             let vfov = 20.;
             let aperture = 0.1;
 
@@ -470,8 +470,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::TwoSpheres => {
             let scene = two_spheres();
-            let lookfrom = Point3::new(13., 2., 3.);
-            let lookat = Point3::new(0., 0., 0.);
+            let lookfrom = vec3a(13., 2., 3.);
+            let lookat = vec3a(0., 0., 0.);
             let vfov = 40.;
             let aperture = 0.;
 
@@ -494,8 +494,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::PerlinSpheres => {
             let scene = perlin_spheres();
-            let lookfrom = Point3::new(13., 2., 7.);
-            let lookat = Point3::new(0., 0., 0.);
+            let lookfrom = vec3a(13., 2., 7.);
+            let lookat = vec3a(0., 0., 0.);
             let vfov = 20.;
             let aperture = 0.;
 
@@ -518,8 +518,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::Earth => {
             let scene = earth();
-            let lookfrom = Point3::new(13., 2., 3.);
-            let lookat = Point3::new(0., 0., 0.);
+            let lookfrom = vec3a(13., 2., 3.);
+            let lookat = vec3a(0., 0., 0.);
             let vfov = 20.;
             let aperture = 0.;
 
@@ -542,8 +542,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::RectLight => {
             let scene = simple_light();
-            let lookfrom = Point3::new(26., 6., 6.);
-            let lookat = Point3::new(0., 2., 0.);
+            let lookfrom = vec3a(26., 6., 6.);
+            let lookat = vec3a(0., 2., 0.);
             let vfov = 20.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(XYRect::new(
@@ -574,8 +574,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::CornellBox => {
             let scene = cornell_box();
-            let lookfrom = Point3::new(278., 278., -800.);
-            let lookat = Point3::new(278., 278., 0.);
+            let lookfrom = vec3a(278., 278., -800.);
+            let lookat = vec3a(278., 278., 0.);
             let vfov = 40.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(XZRect::new(
@@ -606,8 +606,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::CornellTriangle => {
             let scene = cornell_triangle();
-            let lookfrom = Point3::new(278., 278., -800.);
-            let lookat = Point3::new(278., 278., 0.);
+            let lookfrom = vec3a(278., 278., -800.);
+            let lookat = vec3a(278., 278., 0.);
             let vfov = 40.;
             let aperture = 0.;
 
@@ -634,8 +634,8 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
         }
         SceneType::FinalScene => {
             let scene = final_scene();
-            let lookfrom = Point3::new(478., 278., -600.);
-            let lookat = Point3::new(278., 278., 0.);
+            let lookfrom = vec3a(478., 278., -600.);
+            let lookat = vec3a(278., 278., 0.);
             let vfov = 40.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(FlipFace {
