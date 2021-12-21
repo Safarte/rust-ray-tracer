@@ -1,5 +1,6 @@
 /target
+/.vscode
+/output
 *.jpg
 *.png
-.vscode/
 *.out.*

@@ -114,14 +114,11 @@ impl Hittable for BVHNode {
             return None;
         }
 
-        let mut rec: HitRecord;
-
         if let Some(left_rec) = self.left.hit(ray, t_min, t_max) {
-            rec = left_rec;
-            if let Some(right_rec) = self.right.hit(ray, t_min, rec.t) {
-                rec = right_rec;
+            if let Some(right_rec) = self.right.hit(ray, t_min, left_rec.t) {
+                return Some(right_rec);
             }
-            return Some(rec);
+            return Some(left_rec);
         }
         if let Some(right_rec) = self.right.hit(ray, t_min, t_max) {
             return Some(right_rec);

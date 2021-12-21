@@ -17,7 +17,11 @@ use std::sync::Mutex;
 use rand::{thread_rng, Rng};
 use vec3::Color;
 
-use crate::{ray::ray_color, scene::Scene, vec3::get_color};
+use crate::{
+    ray::ray_color,
+    scene::{get_scene, Scene, SceneType},
+    vec3::get_color,
+};
 
 fn main() {
     // CLI args parsing
@@ -46,7 +50,7 @@ fn main() {
 
     // Configuration
     let gltf_file = matches.value_of("gltf").unwrap_or("assets/default.gltf");
-    let output_file = matches.value_of("output").unwrap_or("output.png");
+    let output_file = matches.value_of("output").unwrap_or("output/render.png");
     let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
     let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
     const MAX_DEPTH: u32 = 12;
@@ -60,14 +64,21 @@ fn main() {
     );
 
     // Scene
-    let scene = Scene::from_gltf_file(gltf_file).unwrap();
+    const USE_GLTF: bool = true;
+    let scene: Scene;
+
+    if USE_GLTF {
+        scene = Scene::from_gltf_file(gltf_file).unwrap();
+    } else {
+        scene = get_scene(SceneType::CornellBox, 1.);
+    }
+
     let aspect_ratio: f32 = matches
         .value_of("aspect_ratio")
         .unwrap_or(&scene.camera.aspect_ratio.to_string())
         .parse()
         .unwrap();
     let width = ((height as f32) * aspect_ratio) as u32;
-    // scene = get_scene(SceneType::CornellBox, aspect_ratio);
 
     // Render
     let img: Mutex<RgbImage> = Mutex::new(ImageBuffer::new(width, height));
