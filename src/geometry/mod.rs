@@ -8,24 +8,22 @@ pub mod triangle;
 use std::cmp::Ordering;
 use std::sync::Arc;
 
-use glam::{vec3a, Mat4, Quat, Vec3A};
+use glam::{vec3a, Affine3A, Vec3A};
 use rand::{thread_rng, Rng};
 
 use crate::aabb::{surrounding_box, AABB};
 use crate::{material::HitRecord, ray::Ray};
 
+// TODO: Think about having sized hittables or rethink the way we store objects
 pub type Hittables = Vec<Arc<dyn Hittable>>;
 
 #[allow(unused)]
-pub trait Node: Send + Sync {
-    fn rotate(&self, quat: Quat) {}
-    fn translate(&self, direction: Vec3A) {}
-    fn scale(&self, scale: Vec3A) {}
-    fn transform(&self, transformation: Mat4) {}
+pub trait Transformable: Send + Sync {
+    fn transform(&mut self, other: Affine3A) {}
 }
 
 #[allow(unused)]
-pub trait Hittable: Node {
+pub trait Hittable: Transformable {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
     fn pdf_value(&self, origin: Vec3A, v: Vec3A) -> f32 {
@@ -36,7 +34,7 @@ pub trait Hittable: Node {
     }
 }
 
-impl Node for Hittables {}
+impl Transformable for Hittables {}
 
 impl Hittable for Hittables {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -106,7 +104,7 @@ pub struct BVHNode {
     pub bbox: AABB,
 }
 
-impl Node for BVHNode {}
+impl Transformable for BVHNode {}
 
 impl Hittable for BVHNode {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -192,7 +190,7 @@ pub struct FlipFace {
     pub hittable: Arc<dyn Hittable>,
 }
 
-impl Node for FlipFace {}
+impl Transformable for FlipFace {}
 
 impl Hittable for FlipFace {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

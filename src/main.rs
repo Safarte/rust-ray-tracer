@@ -53,7 +53,7 @@ fn main() {
     let output_file = matches.value_of("output").unwrap_or("output/render.png");
     let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
     let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
-    const MAX_DEPTH: u32 = 12;
+    const MAX_DEPTH: u32 = 8;
 
     // Progress bar
     let bar = ProgressBar::new(height.into());
@@ -89,9 +89,9 @@ fn main() {
             let mut color = Color::new(0., 0., 0.);
 
             for _ in 0..samples {
-                let u = (x as f32 + rng.gen::<f32>()) / (width as f32 - 1.);
-                let v = (y as f32 + rng.gen::<f32>()) / (height as f32 - 1.);
-                let ray = scene.camera.get_ray(u, v);
+                let u = x as f32 + rng.gen::<f32>();
+                let v = y as f32 + rng.gen::<f32>();
+                let ray = scene.camera.get_ray(u, v, width, height);
                 color += ray_color(
                     &ray,
                     &scene.background,

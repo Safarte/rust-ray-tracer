@@ -3,19 +3,58 @@
         "generator" : "Khronos glTF Blender I/O v1.6.16",
         "version" : "2.0"
     },
+    "extensionsUsed" : [
+        "KHR_lights_punctual"
+    ],
+    "extensionsRequired" : [
+        "KHR_lights_punctual"
+    ],
+    "extensions" : {
+        "KHR_lights_punctual" : {
+            "lights" : [
+                {
+                    "color" : [
+                        1,
+                        1,
+                        1
+                    ],
+                    "intensity" : 1000,
+                    "type" : "point",
+                    "name" : "Light"
+                }
+            ]
+        }
+    },
     "scene" : 0,
     "scenes" : [
         {
             "name" : "Scene",
             "nodes" : [
-                0,
-                2,
-                3
+                1,
+                3,
+                4
             ]
         }
     ],
     "nodes" : [
         {
+            "extensions" : {
+                "KHR_lights_punctual" : {
+                    "light" : 0
+                }
+            },
+            "name" : "Light_Orientation",
+            "rotation" : [
+                -0.7071067690849304,
+                0,
+                0,
+                0.7071067690849304
+            ]
+        },
+        {
+            "children" : [
+                0
+            ],
             "name" : "Light",
             "rotation" : [
                 0.16907575726509094,
@@ -26,7 +65,7 @@
             "translation" : [
                 4.076245307922363,
                 5.903861999511719,
-                -1.0054539442062378
+                3.0348076820373535
             ]
         },
         {
@@ -41,7 +80,7 @@
         },
         {
             "children" : [
-                1
+                2
             ],
             "name" : "Camera",
             "rotation" : [
@@ -79,13 +118,13 @@
             "name" : "Material",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
-                    0.800000011920929,
-                    0.800000011920929,
-                    0.800000011920929,
+                    0.3560501039028168,
+                    0.34221136569976807,
+                    0.8000000715255737,
                     1
                 ],
-                "metallicFactor" : 0,
-                "roughnessFactor" : 0.4000000059604645
+                "metallicFactor" : 0.30882352590560913,
+                "roughnessFactor" : 0.48823532462120056
             }
         }
     ],

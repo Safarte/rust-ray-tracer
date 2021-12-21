@@ -1,7 +1,7 @@
 use std::f32::{consts::PI, INFINITY};
 use std::sync::Arc;
 
-use glam::{vec3a, Vec3A};
+use glam::{vec3a, Affine3A, Vec3A};
 use rand::{thread_rng, Rng};
 
 use crate::vec3::OrthNormBasis;
@@ -11,7 +11,7 @@ use crate::{
     ray::Ray,
 };
 
-use super::{Hittable, Node};
+use super::{Hittable, Transformable};
 
 pub struct Sphere {
     pub center: Vec3A,
@@ -29,7 +29,11 @@ impl Sphere {
     }
 }
 
-impl Node for Sphere {}
+impl Transformable for Sphere {
+    fn transform(&mut self, other: Affine3A) {
+        self.center = other.transform_point3a(self.center);
+    }
+}
 
 impl Hittable for Sphere {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -129,7 +133,7 @@ impl MovingSphere {
     }
 }
 
-impl Node for MovingSphere {}
+impl Transformable for MovingSphere {}
 
 impl Hittable for MovingSphere {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

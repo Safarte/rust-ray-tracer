@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use glam::vec3a;
+use glam::{vec3, vec3a, Affine3A};
 use rand::{thread_rng, Rng};
 
 use crate::{
@@ -446,104 +446,70 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
     match scene_type {
         SceneType::Random => {
             let scene = random_scene();
-            let lookfrom = vec3a(13., 2., 3.);
-            let lookat = vec3a(0., 0., 0.);
+
+            let lookfrom = vec3(13., -2., 3.);
+            let lookat = vec3(0., 0., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 20.;
             let aperture = 0.1;
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0.7, 0.8, 1.),
                 lights: Vec::new(),
             };
         }
         SceneType::TwoSpheres => {
             let scene = two_spheres();
-            let lookfrom = vec3a(13., 2., 3.);
-            let lookat = vec3a(0., 0., 0.);
+            let lookfrom = vec3(13., -2., 3.);
+            let lookat = vec3(0., 0., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 40.;
             let aperture = 0.;
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0.7, 0.8, 1.),
                 lights: Vec::new(),
             };
         }
         SceneType::PerlinSpheres => {
             let scene = perlin_spheres();
-            let lookfrom = vec3a(13., 2., 7.);
-            let lookat = vec3a(0., 0., 0.);
+            let lookfrom = vec3(13., -2., 7.);
+            let lookat = vec3(0., 0., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 20.;
             let aperture = 0.;
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0.7, 0.8, 1.),
                 lights: Vec::new(),
             };
         }
         SceneType::Earth => {
             let scene = earth();
-            let lookfrom = vec3a(13., 2., 3.);
-            let lookat = vec3a(0., 0., 0.);
+            let lookfrom = vec3(13., -2., 3.);
+            let lookat = vec3(0., 0., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 20.;
             let aperture = 0.;
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0.7, 0.8, 1.),
                 lights: Vec::new(),
             };
         }
         SceneType::RectLight => {
             let scene = simple_light();
-            let lookfrom = vec3a(26., 6., 6.);
-            let lookat = vec3a(0., 2., 0.);
+            let lookfrom = vec3(26., -6., 6.);
+            let lookat = vec3(0., -2., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 20.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(XYRect::new(
@@ -557,25 +523,16 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0., 0., 0.),
                 lights,
             };
         }
         SceneType::CornellBox => {
             let scene = cornell_box();
-            let lookfrom = vec3a(278., 278., -800.);
-            let lookat = vec3a(278., 278., 0.);
+            let lookfrom = vec3(278., -278., -800.);
+            let lookat = vec3(278., -278., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 40.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(XZRect::new(
@@ -589,25 +546,16 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0., 0., 0.),
                 lights,
             };
         }
         SceneType::CornellTriangle => {
             let scene = cornell_triangle();
-            let lookfrom = vec3a(278., 278., -800.);
-            let lookat = vec3a(278., 278., 0.);
+            let lookfrom = vec3(278., -278., -800.);
+            let lookat = vec3(278., -278., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 40.;
             let aperture = 0.;
 
@@ -617,25 +565,16 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0., 0., 0.),
                 lights,
             };
         }
         SceneType::FinalScene => {
             let scene = final_scene();
-            let lookfrom = vec3a(478., 278., -600.);
-            let lookat = vec3a(278., 278., 0.);
+            let lookfrom = vec3(478., -278., -600.);
+            let lookat = vec3(278., -278., 0.);
+            let camera_to_world = Affine3A::look_at_rh(lookfrom, lookat, vec3(0., 1., 0.));
             let vfov = 40.;
             let aperture = 0.;
             let mut lights: Hittables = vec![Arc::new(FlipFace {
@@ -651,17 +590,7 @@ pub fn get_scene(scene_type: SceneType, aspect_ratio: f32) -> Scene {
 
             return Scene {
                 world: BVHNode::new(scene, 0., 1.),
-                camera: Camera::new(
-                    lookfrom,
-                    lookat,
-                    vup,
-                    vfov,
-                    aspect_ratio,
-                    aperture,
-                    dist_to_focus,
-                    0.,
-                    1.,
-                ),
+                camera: Camera::new(aspect_ratio, vfov, 0.1, 100., camera_to_world, 0., 1.),
                 background: Color::new(0., 0., 0.),
                 lights,
             };

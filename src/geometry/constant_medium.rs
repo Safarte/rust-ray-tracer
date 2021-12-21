@@ -10,7 +10,7 @@ use crate::{
     vec3::Color,
 };
 
-use super::{Hittable, Node};
+use super::{Hittable, Transformable};
 
 pub struct ConstantMedium {
     boundary: Arc<dyn Hittable>,
@@ -40,7 +40,7 @@ impl ConstantMedium {
     }
 }
 
-impl Node for ConstantMedium {}
+impl Transformable for ConstantMedium {}
 
 impl Hittable for ConstantMedium {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

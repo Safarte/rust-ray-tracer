@@ -8,7 +8,7 @@ use crate::{
     ray::Ray,
 };
 
-use super::{Hittable, Node};
+use super::{Hittable, Transformable};
 
 pub struct Triangle {
     vertices: [Vec3A; 3],
@@ -30,7 +30,7 @@ impl Triangle {
     }
 }
 
-impl Node for Triangle {}
+impl Transformable for Triangle {}
 
 impl Hittable for Triangle {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {

@@ -4,7 +4,7 @@ use glam::{vec3a, Vec3A};
 
 use crate::{aabb::AABB, material::HitRecord, ray::Ray};
 
-use super::{Hittable, Node};
+use super::{Hittable, Transformable};
 
 pub struct Translate {
     base: Arc<dyn Hittable>,
@@ -17,7 +17,7 @@ impl Translate {
     }
 }
 
-impl Node for Translate {}
+impl Transformable for Translate {}
 
 impl Hittable for Translate {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -48,7 +48,7 @@ pub struct RotateY {
     bbox: Option<AABB>,
 }
 
-impl Node for RotateY {}
+impl Transformable for RotateY {}
 
 impl RotateY {
     pub fn new(base: Arc<dyn Hittable>, angle: f32) -> RotateY {

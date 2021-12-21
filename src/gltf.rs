@@ -1,13 +1,14 @@
 use std::{convert::TryInto, error::Error, fs::read_to_string, path::Path, sync::Arc};
 
 use base64::decode;
-use glam::{vec3a, Vec2, Vec3A};
+use glam::{vec3a, Affine3A, Mat4, Vec2, Vec3A};
+use gltf::{camera::Projection, scene::Transform, Gltf, Node};
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
 use crate::{
     camera::Camera,
-    geometry::{sphere::Sphere, triangle::Triangle, BVHNode, Hittables},
+    geometry::{sphere::Sphere, triangle::Triangle, BVHNode, Hittables, Transformable},
     material::{DiffuseLight, Lambertian, Material, Metal},
     scene::Scene,
     vec3::Color,
@@ -61,20 +62,6 @@ struct GLTFMaterial {
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug)]
-struct GLTFCameraPerspective {
-    aspectRatio: f32,
-    yfov: f32,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug)]
-struct GLTFCamera {
-    name: String,
-    perspective: GLTFCameraPerspective,
-}
-
-#[allow(non_snake_case)]
-#[derive(Serialize, Deserialize, Debug)]
 struct GLTFMeshPrimitiveAttributes {
     POSITION: usize,
 }
@@ -111,7 +98,6 @@ struct GLTFFile {
     scene: usize,
     scenes: Vec<GLTFScene>,
     nodes: Vec<GLTFNode>,
-    cameras: Vec<GLTFCamera>,
     materials: Vec<GLTFMaterial>,
     meshes: Vec<GLTFMesh>,
     accessors: Vec<GLTFAccessor>,
@@ -219,25 +205,6 @@ fn gltf_accessors_to_data(
     out
 }
 
-fn gltf_camera_to_camera(camera: &GLTFCamera) -> Camera {
-    let lookfrom = vec3a(1., 1., 7.);
-    let lookat = vec3a(0., 0., 0.);
-    let vup = vec3a(0., 1., 0.);
-    let aperture = 0.;
-
-    Camera::new(
-        lookfrom,
-        lookat,
-        vup,
-        camera.perspective.yfov.to_degrees(),
-        camera.perspective.aspectRatio,
-        aperture,
-        10.,
-        0.,
-        1.,
-    )
-}
-
 fn gltf_meshes_to_hittables(
     meshes: &[GLTFMesh],
     accessors: &[Vec<DataType>],
@@ -276,24 +243,103 @@ fn gltf_meshes_to_hittables(
     objects
 }
 
+enum NodeType {
+    Camera(Camera),
+    Light(Sphere),
+    // Mesh(Hittables),
+}
+
+impl Transformable for NodeType {
+    fn transform(&mut self, other: Affine3A) {
+        match self {
+            NodeType::Camera(camera) => camera.transform(other),
+            NodeType::Light(light) => light.transform(other),
+            // NodeType::Mesh(mesh) => mesh.transform(other),
+        }
+    }
+}
+
+fn transform_to_affine3a(transform: Transform) -> Affine3A {
+    Affine3A::from_mat4(Mat4::from_cols_array_2d(&transform.matrix()))
+}
+
+// TODO: handle mesh importing
+fn handle_gltf_node(node: Node) -> Option<NodeType> {
+    if let Some(camera) = node.camera() {
+        match camera.projection() {
+            Projection::Perspective(perspective) => {
+                let camera_to_world = transform_to_affine3a(node.transform());
+
+                return Some(NodeType::Camera(Camera::new(
+                    perspective.aspect_ratio().unwrap_or(1.),
+                    perspective.yfov().to_degrees(),
+                    perspective.znear(),
+                    perspective.zfar().unwrap_or(100.),
+                    camera_to_world,
+                    0.,
+                    1.,
+                )));
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(light) = node.light() {
+        let mut sphere_light = Sphere {
+            center: Vec3A::ZERO,
+            radius: 0.15,
+            material: Arc::new(DiffuseLight::from_color(
+                Vec3A::from(light.color()) * light.intensity(),
+            )),
+        };
+        let light_to_world = transform_to_affine3a(node.transform());
+        sphere_light.transform(light_to_world);
+
+        return Some(NodeType::Light(sphere_light));
+    }
+
+    if node.children().count() == 1 {
+        let transform_mat = transform_to_affine3a(node.transform());
+        let child = node.children().next().unwrap();
+
+        if let Some(mut res) = handle_gltf_node(child) {
+            res.transform(transform_mat);
+            return Some(res);
+        }
+    }
+
+    None
+}
+
 impl Scene {
     pub fn from_gltf_file<P: AsRef<Path>>(path: P) -> Result<Scene, Box<dyn Error>> {
-        let gltf = read_gltf_from_file(path)?;
+        let gltf_old = read_gltf_from_file(path)?;
+        let gltf = Gltf::open("assets/suzanne.gltf")?;
 
-        let buffers = gltf_buffers_to_bytes(&gltf.buffers);
-        let buffer_views = gltf_buffer_views_to_bytes(&gltf.bufferViews, &buffers);
-        let accessors = gltf_accessors_to_data(&gltf.accessors, &buffer_views);
+        let mut camera = Camera::default();
+        let buffers = gltf_buffers_to_bytes(&gltf_old.buffers);
+        let buffer_views = gltf_buffer_views_to_bytes(&gltf_old.bufferViews, &buffers);
+        let accessors = gltf_accessors_to_data(&gltf_old.accessors, &buffer_views);
 
-        let materials = gltf_materials_to_materials(&gltf.materials);
-        let camera = gltf_camera_to_camera(&gltf.cameras[0]);
-        let mut objects = gltf_meshes_to_hittables(&gltf.meshes, &accessors, &materials);
-        let light = Arc::new(Sphere {
-            center: vec3a(2., 6., 3.),
-            radius: 0.15,
-            material: Arc::new(DiffuseLight::from_color(Color::new(1000., 1000., 1000.))),
-        });
-        let lights: Hittables = vec![light.clone()];
-        objects.push(light);
+        let materials = gltf_materials_to_materials(&gltf_old.materials);
+        let mut objects = gltf_meshes_to_hittables(&gltf_old.meshes, &accessors, &materials);
+        let mut lights: Hittables = Vec::new();
+
+        for scene in gltf.scenes() {
+            for node in scene.nodes() {
+                if let Some(out) = handle_gltf_node(node.clone()) {
+                    match out {
+                        NodeType::Camera(cam) => camera = cam,
+                        NodeType::Light(light) => {
+                            let light_arc = Arc::new(light);
+                            objects.push(light_arc.clone());
+                            lights.push(light_arc.clone());
+                        }
+                    }
+                }
+            }
+        }
+
         let world = BVHNode::new(objects, 0., 1.);
 
         Ok(Scene {

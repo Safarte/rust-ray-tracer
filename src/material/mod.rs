@@ -42,6 +42,7 @@ pub trait Material: Send + Sync {
     }
 }
 
+// TODO: Implement PBR Metallic Roughness material
 pub struct Lambertian {
     pub albedo: Arc<dyn Texture>,
 }

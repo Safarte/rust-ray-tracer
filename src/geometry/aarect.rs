@@ -9,7 +9,7 @@ use crate::{
     ray::Ray,
 };
 
-use super::{Hittable, Node};
+use super::{Hittable, Transformable};
 
 pub struct XYRect {
     pub material: Arc<dyn Material>,
@@ -33,7 +33,7 @@ impl XYRect {
     }
 }
 
-impl Node for XYRect {}
+impl Transformable for XYRect {}
 
 impl Hittable for XYRect {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -88,7 +88,7 @@ impl XZRect {
     }
 }
 
-impl Node for XZRect {}
+impl Transformable for XZRect {}
 
 impl Hittable for XZRect {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
@@ -151,7 +151,7 @@ pub struct YZRect {
     pub k: f32,
 }
 
-impl Node for YZRect {}
+impl Transformable for YZRect {}
 
 impl YZRect {
     pub fn new(y0: f32, y1: f32, z0: f32, z1: f32, k: f32, mat: Arc<dyn Material>) -> YZRect {

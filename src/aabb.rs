@@ -1,6 +1,6 @@
 use glam::{vec3a, Vec3A};
 
-use crate::{geometry::Node, ray::Ray};
+use crate::{geometry::Transformable, ray::Ray};
 
 #[derive(Clone, Copy)]
 pub struct AABB {
@@ -34,7 +34,7 @@ impl AABB {
     }
 }
 
-impl Node for AABB {}
+impl Transformable for AABB {}
 
 pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
     let small = vec3a(
