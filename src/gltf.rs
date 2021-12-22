@@ -287,7 +287,7 @@ fn handle_gltf_node(node: Node) -> Option<NodeType> {
     if let Some(light) = node.light() {
         let mut sphere_light = Sphere {
             center: Vec3A::ZERO,
-            radius: 0.15,
+            radius: 0.2,
             material: Arc::new(DiffuseLight::from_color(
                 Vec3A::from(light.color()) * light.intensity(),
             )),

@@ -31,7 +31,7 @@ impl Sphere {
 
 impl Transformable for Sphere {
     fn transform(&mut self, other: Affine3A) {
-        self.center = other.transform_point3a(self.center);
+        self.center += other.translation;
     }
 }
 

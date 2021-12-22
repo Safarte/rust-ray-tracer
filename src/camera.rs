@@ -18,7 +18,7 @@ pub struct Camera {
 impl Camera {
     pub fn new(
         aspect_ratio: f32,
-        vertical_fov: f32, // Vertical FoV
+        vertical_fov: f32,
         near_plane_dist: f32,
         far_plane_dist: f32,
         camera_to_world: Affine3A,
