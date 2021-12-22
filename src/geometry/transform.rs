@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use glam::{vec3a, Vec3A};
 
-use crate::{aabb::AABB, material::HitRecord, ray::Ray};
+use crate::{bvh::aabb::AABB, material::HitRecord, ray::Ray};
 
 use super::{Hittable, Transformable};
 

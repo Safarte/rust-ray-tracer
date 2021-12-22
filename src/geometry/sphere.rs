@@ -4,9 +4,10 @@ use std::sync::Arc;
 use glam::{vec3a, Affine3A, Vec3A};
 use rand::{thread_rng, Rng};
 
+use crate::bvh::Bounded;
 use crate::vec3::OrthNormBasis;
 use crate::{
-    aabb::{surrounding_box, AABB},
+    bvh::aabb::{surrounding_box, AABB},
     material::{HitRecord, Material},
     ray::Ray,
 };
@@ -17,9 +18,19 @@ pub struct Sphere {
     pub center: Vec3A,
     pub radius: f32,
     pub material: Arc<dyn Material>,
+    aabb: AABB,
 }
 
 impl Sphere {
+    pub fn new(center: Vec3A, radius: f32, material: Arc<dyn Material>) -> Self {
+        Sphere {
+            center,
+            radius,
+            material,
+            aabb: compute_sphere_aabb(center, radius),
+        }
+    }
+
     fn get_sphere_uv(&self, p: Vec3A) -> (f32, f32) {
         let theta = (-p[1]).acos();
         let phi = (-p[2]).atan2(p[0]) + PI;
@@ -30,8 +41,10 @@ impl Sphere {
 }
 
 impl Transformable for Sphere {
-    fn transform(&mut self, other: Affine3A) {
+    fn apply_transform(&mut self, other: Affine3A) {
         self.center += other.translation;
+
+        self.aabb = compute_sphere_aabb(self.center, self.radius);
     }
 }
 
@@ -82,10 +95,7 @@ impl Hittable for Sphere {
     }
 
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
-        Some(AABB {
-            min: self.center - vec3a(self.radius, self.radius, self.radius),
-            max: self.center + vec3a(self.radius, self.radius, self.radius),
-        })
+        Some(self.aabb)
     }
 
     fn pdf_value(&self, origin: Vec3A, v: Vec3A) -> f32 {
@@ -106,6 +116,19 @@ impl Hittable for Sphere {
         let dist_squared = direction.length_squared();
         let uvw = OrthNormBasis::from_w(direction);
         uvw.local(random_to_sphere(self.radius, dist_squared))
+    }
+}
+
+impl Bounded for Sphere {
+    fn aabb(&self) -> AABB {
+        self.aabb
+    }
+}
+
+fn compute_sphere_aabb(center: Vec3A, radius: f32) -> AABB {
+    AABB {
+        min: center - vec3a(radius, radius, radius),
+        max: center + vec3a(radius, radius, radius),
     }
 }
 

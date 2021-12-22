@@ -1,4 +1,4 @@
-mod aabb;
+mod bvh;
 mod camera;
 mod geometry;
 mod gltf;

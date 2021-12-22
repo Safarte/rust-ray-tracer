@@ -11,19 +11,46 @@ use std::sync::Arc;
 use glam::{vec3a, Affine3A, Vec3A};
 use rand::{thread_rng, Rng};
 
-use crate::aabb::{surrounding_box, AABB};
+use crate::bvh::aabb::{surrounding_box, AABB};
+use crate::bvh::Bounded;
 use crate::{material::HitRecord, ray::Ray};
+
+use self::sphere::Sphere;
+use self::triangle::Triangle;
+
+pub enum PrimitiveType {
+    Triangle(Triangle),
+    Sphere(Sphere),
+}
+
+pub struct Primitive {
+    primitive: PrimitiveType,
+    material_index: usize,
+}
+
+impl Bounded for Primitive {
+    fn aabb(&self) -> AABB {
+        match &self.primitive {
+            PrimitiveType::Triangle(prim) => prim.aabb(),
+            PrimitiveType::Sphere(prim) => prim.aabb(),
+        }
+    }
+}
+
+pub struct Mesh {
+    triangle_indices: Vec<usize>,
+}
 
 // TODO: Think about having sized hittables or rethink the way we store objects
 pub type Hittables = Vec<Arc<dyn Hittable>>;
 
 #[allow(unused)]
-pub trait Transformable: Send + Sync {
-    fn transform(&mut self, other: Affine3A) {}
+pub trait Transformable {
+    fn apply_transform(&mut self, other: Affine3A) {}
 }
 
 #[allow(unused)]
-pub trait Hittable: Transformable {
+pub trait Hittable: Transformable + Send + Sync {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
     fn bounding_box(&self, time0: f32, time1: f32) -> Option<AABB>;
     fn pdf_value(&self, origin: Vec3A, v: Vec3A) -> f32 {

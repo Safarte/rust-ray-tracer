@@ -36,11 +36,11 @@ fn random_scene() -> Hittables {
 
     let pertex = Arc::new(Noise::new(4.));
     let ground_material = Arc::new(Lambertian::new(pertex));
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., -1000., 0.),
-        radius: 1000.,
-        material: ground_material,
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., -1000., 0.),
+        1000.,
+        ground_material,
+    )));
 
     let comp = vec3a(4., 0.2, 0.);
 
@@ -70,42 +70,22 @@ fn random_scene() -> Hittables {
                     let albedo = random_vector(0., 1.);
                     let fuzziness: f32 = rng.gen_range((0.)..0.5);
                     let material = Arc::new(Metal { albedo, fuzziness });
-                    world.push(Arc::new(Sphere {
-                        center,
-                        radius: 0.2,
-                        material,
-                    }))
+                    world.push(Arc::new(Sphere::new(center, 0.2, material)))
                 } else {
                     let material = Arc::new(Dielectric { ir: 1.5 });
-                    world.push(Arc::new(Sphere {
-                        center,
-                        radius: 0.2,
-                        material,
-                    }))
+                    world.push(Arc::new(Sphere::new(center, 0.2, material)))
                 }
             }
         }
     }
 
     let material = Arc::new(Lambertian::from_rgb(0.4, 0.2, 0.1));
-    world.push(Arc::new(Sphere {
-        center: vec3a(-4., 1., 0.),
-        radius: 1.,
-        material,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(-4., 1., 0.), 1., material)));
     let material = Arc::new(Dielectric { ir: 1.5 });
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 1., 0.),
-        radius: 1.,
-        material,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(0., 1., 0.), 1., material)));
     let img_tex = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
     let img_mat = Arc::new(Lambertian::new(img_tex));
-    world.push(Arc::new(Sphere {
-        center: vec3a(4., 1., 0.),
-        radius: 1.,
-        material: img_mat,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(4., 1., 0.), 1., img_mat)));
 
     world
 }
@@ -119,22 +99,22 @@ fn two_spheres() -> Hittables {
         Color::new(0.9, 0.9, 0.9),
     ));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., -10., 0.),
-        radius: 10.,
-        material: Arc::new(Lambertian::new(checker)),
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., -10., 0.),
+        10.,
+        Arc::new(Lambertian::new(checker)),
+    )));
 
     let checker_tex = Arc::new(Checker::new(
         Arc::new(ImageTexture::from_file("./earthmap.jpg")),
         Arc::new(ImageTexture::from_file("./earthmap.jpg")),
     ));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 10., 0.),
-        radius: 10.,
-        material: Arc::new(Lambertian::new(checker_tex)),
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., 10., 0.),
+        10.,
+        Arc::new(Lambertian::new(checker_tex)),
+    )));
 
     world
 }
@@ -145,17 +125,17 @@ fn perlin_spheres() -> Hittables {
 
     let pertex = Arc::new(Noise::new(4.));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., -1000., 0.),
-        radius: 1000.,
-        material: Arc::new(Lambertian::new(pertex.clone())),
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., -1000., 0.),
+        1000.,
+        Arc::new(Lambertian::new(pertex.clone())),
+    )));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 1., 0.),
-        radius: 1.,
-        material: Arc::new(Lambertian::new(pertex)),
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., 1., 0.),
+        1.,
+        Arc::new(Lambertian::new(pertex)),
+    )));
 
     world
 }
@@ -166,11 +146,7 @@ fn earth() -> Hittables {
 
     let earth_texture = Arc::new(ImageTexture::from_file("./earthmap.jpg"));
     let earth_surface = Arc::new(Lambertian::new(earth_texture));
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 0., 0.),
-        radius: 2.,
-        material: earth_surface,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(0., 0., 0.), 2., earth_surface)));
 
     world
 }
@@ -181,20 +157,20 @@ fn simple_light() -> Hittables {
 
     let pertex = Arc::new(Noise::new(4.));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., -1000., 0.),
-        radius: 1000.,
-        material: Arc::new(Lambertian::new(pertex)),
-    }));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., -1000., 0.),
+        1000.,
+        Arc::new(Lambertian::new(pertex)),
+    )));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 2., 0.),
-        radius: 2.,
-        material: Arc::new(Metal {
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., 2., 0.),
+        2.,
+        Arc::new(Metal {
             albedo: Color::new(0.5, 0.5, 0.5),
             fuzziness: 0.1,
         }),
-    }));
+    )));
 
     let diff_light = Arc::new(DiffuseLight::from_color(Color::new(4., 4., 4.)));
 
@@ -207,11 +183,7 @@ fn simple_light() -> Hittables {
         diff_light.clone(),
     )));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 6., 0.),
-        radius: 1.,
-        material: diff_light,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(0., 6., 0.), 1., diff_light)));
 
     world
 }
@@ -358,35 +330,35 @@ fn final_scene() -> Hittables {
         material: moving_sphere_mat,
     }));
 
-    world.push(Arc::new(Sphere {
-        center: vec3a(260., 150., 45.),
-        radius: 45.,
-        material: Arc::new(Dielectric { ir: 1.5 }),
-    }));
-    world.push(Arc::new(Sphere {
-        center: vec3a(0., 150., 145.),
-        radius: 50.,
-        material: Arc::new(Metal {
+    world.push(Arc::new(Sphere::new(
+        vec3a(260., 150., 45.),
+        45.,
+        Arc::new(Dielectric { ir: 1.5 }),
+    )));
+    world.push(Arc::new(Sphere::new(
+        vec3a(0., 150., 145.),
+        50.,
+        Arc::new(Metal {
             albedo: Color::new(0.8, 0.8, 0.9),
             fuzziness: 1.,
         }),
-    }));
-    let boundary = Arc::new(Sphere {
-        center: vec3a(360., 150., 145.),
-        radius: 70.,
-        material: Arc::new(Dielectric { ir: 1.5 }),
-    });
+    )));
+    let boundary = Arc::new(Sphere::new(
+        vec3a(360., 150., 145.),
+        70.,
+        Arc::new(Dielectric { ir: 1.5 }),
+    ));
     world.push(boundary.clone());
     world.push(Arc::new(ConstantMedium::from_color(
         boundary,
         0.2,
         Color::new(0.2, 0.4, 0.9),
     )));
-    let fog = Arc::new(Sphere {
-        center: vec3a(0., 0., 0.),
-        radius: 5000.,
-        material: Arc::new(Dielectric { ir: 1.5 }),
-    });
+    let fog = Arc::new(Sphere::new(
+        vec3a(0., 0., 0.),
+        5000.,
+        Arc::new(Dielectric { ir: 1.5 }),
+    ));
     world.push(Arc::new(ConstantMedium::from_texture(
         fog,
         0.0001,
@@ -395,27 +367,19 @@ fn final_scene() -> Hittables {
     let emat = Arc::new(Lambertian::new(Arc::new(ImageTexture::from_file(
         "earthmap.jpg",
     ))));
-    world.push(Arc::new(Sphere {
-        center: vec3a(400., 200., 400.),
-        radius: 100.,
-        material: emat,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(400., 200., 400.), 100., emat)));
     let pertex = Arc::new(Lambertian::new(Arc::new(Noise::new(2.))));
-    world.push(Arc::new(Sphere {
-        center: vec3a(220., 280., 200.),
-        radius: 80.,
-        material: pertex,
-    }));
+    world.push(Arc::new(Sphere::new(vec3a(220., 280., 200.), 80., pertex)));
 
     let mut boxes2: Hittables = Vec::new();
     let white = Arc::new(Lambertian::from_rgb(0.73, 0.73, 0.73));
     let ns = 10;
     for _j in 0..ns {
-        boxes2.push(Arc::new(Sphere {
-            center: random_vector(0., 165.),
-            radius: 10.,
-            material: white.clone(),
-        }));
+        boxes2.push(Arc::new(Sphere::new(
+            random_vector(0., 165.),
+            10.,
+            white.clone(),
+        )));
     }
 
     world.push(Arc::new(Translate::new(

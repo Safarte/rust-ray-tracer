@@ -70,7 +70,7 @@ impl Camera {
 }
 
 impl Transformable for Camera {
-    fn transform(&mut self, other: Affine3A) {
+    fn apply_transform(&mut self, other: Affine3A) {
         self.camera_to_world = other * self.camera_to_world;
         self.ray_origin = other.transform_point3a(self.ray_origin);
     }

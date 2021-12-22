@@ -1,6 +1,8 @@
+use std::{cmp::Ordering, f32::INFINITY};
+
 use glam::{vec3a, Vec3A};
 
-use crate::{geometry::Transformable, ray::Ray};
+use crate::ray::Ray;
 
 #[derive(Clone, Copy)]
 pub struct AABB {
@@ -34,8 +36,6 @@ impl AABB {
     }
 }
 
-impl Transformable for AABB {}
-
 pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
     let small = vec3a(
         box0.min[0].min(box1.min[0]),
@@ -53,4 +53,20 @@ pub fn surrounding_box(box0: AABB, box1: AABB) -> AABB {
         min: small,
         max: big,
     }
+}
+
+pub fn surrounding_box_vec(aabbs: &[AABB]) -> AABB {
+    let mut min = vec3a(INFINITY, INFINITY, INFINITY);
+    let mut max = vec3a(-INFINITY, -INFINITY, -INFINITY);
+
+    for aabb in aabbs.iter() {
+        min = min.min(aabb.min);
+        max = max.max(aabb.max);
+    }
+
+    AABB { min, max }
+}
+
+pub fn aabb_compare(a: &AABB, b: &AABB, axis: usize) -> Ordering {
+    return a.min[axis].partial_cmp(&b.min[axis]).unwrap();
 }

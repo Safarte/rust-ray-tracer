@@ -3,7 +3,7 @@ use std::sync::Arc;
 use glam::Vec3A;
 
 use crate::{
-    aabb::AABB,
+    bvh::aabb::AABB,
     material::{HitRecord, Material},
     ray::Ray,
 };

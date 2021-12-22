@@ -4,7 +4,7 @@ use glam::vec3a;
 use rand::{thread_rng, Rng};
 
 use crate::{
-    aabb::AABB,
+    bvh::aabb::AABB,
     material::{texture::Texture, HitRecord, Isotropic, Material},
     ray::Ray,
     vec3::Color,

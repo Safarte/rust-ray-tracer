@@ -3,7 +3,7 @@ use std::sync::Arc;
 use glam::{vec3a, Vec3A};
 
 use crate::{
-    aabb::AABB,
+    bvh::{aabb::AABB, Bounded},
     material::{HitRecord, Material},
     ray::Ray,
 };
@@ -16,6 +16,7 @@ pub struct Triangle {
     double_sided: bool,
     v0v1: Vec3A,
     v0v2: Vec3A,
+    aabb: AABB,
 }
 
 impl Triangle {
@@ -26,6 +27,7 @@ impl Triangle {
             double_sided: false,
             v0v1: v1 - v0,
             v0v2: v2 - v0,
+            aabb: compute_triangle_aabb(&[v0, v1, v2]),
         }
     }
 }
@@ -67,15 +69,26 @@ impl Hittable for Triangle {
     }
 
     fn bounding_box(&self, _time0: f32, _time1: f32) -> Option<AABB> {
-        let x_min = self.vertices[0][0].min(self.vertices[1][0].min(self.vertices[2][0])) - 0.0001;
-        let y_min = self.vertices[0][1].min(self.vertices[1][1].min(self.vertices[2][1])) - 0.0001;
-        let z_min = self.vertices[0][2].min(self.vertices[1][2].min(self.vertices[2][2])) - 0.0001;
-        let x_max = self.vertices[0][0].max(self.vertices[1][0].max(self.vertices[2][0])) + 0.0001;
-        let y_max = self.vertices[0][1].max(self.vertices[1][1].max(self.vertices[2][1])) + 0.0001;
-        let z_max = self.vertices[0][2].max(self.vertices[1][2].max(self.vertices[2][2])) + 0.0001;
-        Some(AABB {
-            min: vec3a(x_min, y_min, z_min),
-            max: vec3a(x_max, y_max, z_max),
-        })
+        Some(self.aabb)
+    }
+}
+
+impl Bounded for Triangle {
+    fn aabb(&self) -> AABB {
+        self.aabb
+    }
+}
+
+fn compute_triangle_aabb(vertices: &[Vec3A; 3]) -> AABB {
+    let x_min = vertices[0][0].min(vertices[1][0].min(vertices[2][0])) - 0.0001;
+    let y_min = vertices[0][1].min(vertices[1][1].min(vertices[2][1])) - 0.0001;
+    let z_min = vertices[0][2].min(vertices[1][2].min(vertices[2][2])) - 0.0001;
+    let x_max = vertices[0][0].max(vertices[1][0].max(vertices[2][0])) + 0.0001;
+    let y_max = vertices[0][1].max(vertices[1][1].max(vertices[2][1])) + 0.0001;
+    let z_max = vertices[0][2].max(vertices[1][2].max(vertices[2][2])) + 0.0001;
+
+    AABB {
+        min: vec3a(x_min, y_min, z_min),
+        max: vec3a(x_max, y_max, z_max),
     }
 }

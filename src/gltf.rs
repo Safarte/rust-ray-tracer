@@ -250,10 +250,10 @@ enum NodeType {
 }
 
 impl Transformable for NodeType {
-    fn transform(&mut self, other: Affine3A) {
+    fn apply_transform(&mut self, other: Affine3A) {
         match self {
-            NodeType::Camera(camera) => camera.transform(other),
-            NodeType::Light(light) => light.transform(other),
+            NodeType::Camera(camera) => camera.apply_transform(other),
+            NodeType::Light(light) => light.apply_transform(other),
             // NodeType::Mesh(mesh) => mesh.transform(other),
         }
     }
@@ -285,15 +285,15 @@ fn handle_gltf_node(node: Node) -> Option<NodeType> {
     }
 
     if let Some(light) = node.light() {
-        let mut sphere_light = Sphere {
-            center: Vec3A::ZERO,
-            radius: 0.2,
-            material: Arc::new(DiffuseLight::from_color(
+        let mut sphere_light = Sphere::new(
+            Vec3A::ZERO,
+            0.2,
+            Arc::new(DiffuseLight::from_color(
                 Vec3A::from(light.color()) * light.intensity(),
             )),
-        };
+        );
         let light_to_world = transform_to_affine3a(node.transform());
-        sphere_light.transform(light_to_world);
+        sphere_light.apply_transform(light_to_world);
 
         return Some(NodeType::Light(sphere_light));
     }
@@ -303,7 +303,7 @@ fn handle_gltf_node(node: Node) -> Option<NodeType> {
         let child = node.children().next().unwrap();
 
         if let Some(mut res) = handle_gltf_node(child) {
-            res.transform(transform_mat);
+            res.apply_transform(transform_mat);
             return Some(res);
         }
     }
