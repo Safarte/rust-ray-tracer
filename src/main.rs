@@ -53,7 +53,7 @@ fn main() {
     let output_file = matches.value_of("output").unwrap_or("output/render.png");
     let height: u32 = matches.value_of("HEIGHT").unwrap().parse().unwrap();
     let samples: u32 = matches.value_of("SAMPLES").unwrap().parse().unwrap();
-    const MAX_DEPTH: u32 = 8;
+    const MAX_DEPTH: u32 = 4;
 
     // Progress bar
     let bar = ProgressBar::new(height.into());

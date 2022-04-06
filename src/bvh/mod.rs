@@ -65,6 +65,13 @@ impl BVHNode {
             }
 
             let node_index = nodes.len();
+
+            // Dummy node
+            nodes.push(BVHNode::Leaf {
+                parent_index: 0,
+                primitive_index: 0,
+            });
+
             let child_l_aabb = surrounding_box_vec(
                 &left
                     .iter()
@@ -81,13 +88,13 @@ impl BVHNode {
             let child_l_index = BVHNode::build_rec(primitives, &left, nodes, node_index);
             let child_r_index = BVHNode::build_rec(primitives, &right, nodes, node_index);
 
-            nodes.push(BVHNode::Node {
+            nodes[node_index] = BVHNode::Node {
                 parent_index,
                 child_l_index,
                 child_l_aabb,
                 child_r_index,
                 child_r_aabb,
-            });
+            };
 
             return node_index;
         }

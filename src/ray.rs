@@ -3,7 +3,9 @@ use std::sync::Arc;
 use glam::Vec3A;
 
 use crate::{
-    geometry::{Hittable, Hittables},
+    bvh::BVH,
+    geometry::{Hittable, Hittables, Primitive},
+    material::HitRecord,
     pdf::{HittablePDF, MixturePDF},
     vec3::{mul, Color},
 };
@@ -38,6 +40,38 @@ impl Ray {
 
     pub fn at(&self, t: f32) -> Vec3A {
         self.origin + t * self.direction
+    }
+
+    pub fn get_color(
+        &self,
+        background: &Color,
+        bvh: BVH,
+        primitives: &[Primitive],
+        depth: usize,
+    ) -> Color {
+        if depth == 0 {
+            return Color::ZERO;
+        }
+
+        let mut t = f32::INFINITY;
+        let mut closest_hit: Option<HitRecord> = None;
+
+        let possible_hits = bvh.traverse(self, primitives, 0.0001, t);
+
+        for primitive in possible_hits.iter() {
+            let hit = primitive.hit(self, 0.0001, t);
+            match &hit {
+                Some(rec) => {
+                    t = rec.t;
+                    closest_hit = hit;
+                }
+                _ => {}
+            }
+        }
+
+        // TODO: Compute color
+
+        *background
     }
 }
 

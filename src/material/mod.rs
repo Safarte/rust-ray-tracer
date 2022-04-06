@@ -1,3 +1,4 @@
+pub mod pbr;
 mod perlin;
 pub mod texture;
 

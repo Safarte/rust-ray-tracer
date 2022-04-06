@@ -18,27 +18,27 @@ use crate::{material::HitRecord, ray::Ray};
 use self::sphere::Sphere;
 use self::triangle::Triangle;
 
-pub enum PrimitiveType {
+pub enum Primitive {
     Triangle(Triangle),
     Sphere(Sphere),
 }
 
-pub struct Primitive {
-    primitive: PrimitiveType,
-    material_index: usize,
-}
-
 impl Bounded for Primitive {
     fn aabb(&self) -> AABB {
-        match &self.primitive {
-            PrimitiveType::Triangle(prim) => prim.aabb(),
-            PrimitiveType::Sphere(prim) => prim.aabb(),
+        match self {
+            Primitive::Triangle(prim) => prim.aabb(),
+            Primitive::Sphere(prim) => prim.aabb(),
         }
     }
 }
 
-pub struct Mesh {
-    triangle_indices: Vec<usize>,
+impl Primitive {
+    pub fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord> {
+        match self {
+            Primitive::Triangle(prim) => prim.hit(ray, t_min, t_max),
+            Primitive::Sphere(prim) => prim.hit(ray, t_min, t_max),
+        }
+    }
 }
 
 // TODO: Think about having sized hittables or rethink the way we store objects
